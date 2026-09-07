@@ -3,10 +3,9 @@ import { parse } from 'url';
 import next from 'next';
 
 const dev = process.env.NODE_ENV !== 'production';
-const hostname = process.env.HOSTNAME || 'localhost';
-const port = parseInt(process.env.PORT || '3000', 10);
+const port = process.env.PORT || 3000;
 
-const app = next({ dev, hostname, port });
+const app = next({ dev });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
@@ -21,6 +20,6 @@ app.prepare().then(() => {
     }
   }).listen(port, (err) => {
     if (err) throw err;
-    console.log(`> EliteHub CRM ready on http://${hostname}:${port}`);
+    console.log(`> EliteHub CRM ready on ${port}`);
   });
 });
