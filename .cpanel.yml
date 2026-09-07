@@ -1,6 +1,7 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=$HOME/care.elitehubproperties.com/
-    - /bin/mkdir -p $HOME/care.elitehubproperties.com/
-    - /bin/cp -R app components emails lib public scripts services src types next.config.mjs package.json package-lock.json tsconfig.json middleware.ts index.html .env.example $HOME/care.elitehubproperties.com/
+    - export DEPLOYPATH=/home/elitehub/care.elitehubproperties.com/
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R app components emails lib public scripts services src types next.config.mjs package.json package-lock.json tsconfig.json middleware.ts index.html .env.example $DEPLOYPATH
+
