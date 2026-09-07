@@ -21,7 +21,7 @@ export function getEmailFrom(): string {
  * Defaults to 'http://localhost:3000'.
  */
 export function getAppUrl(): string {
-  const rawUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const rawUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://care.elitehubproperties.com';
   return rawUrl.replace(/\/+$/, '');
 }
 

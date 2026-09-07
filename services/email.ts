@@ -44,7 +44,7 @@ export async function sendComplaintReceivedEmail(params: {
 
   try {
     const trackingUrl = getTrackingUrl(trackingToken);
-    const { subject, html } = renderComplaintReceivedEmail({
+    const { subject, html, text } = renderComplaintReceivedEmail({
       referenceNumber,
       trackingUrl,
       customerName,
@@ -55,6 +55,7 @@ export async function sendComplaintReceivedEmail(params: {
       to: to.trim(),
       subject,
       html,
+      text,
     });
 
     if (error) {
@@ -94,7 +95,7 @@ export async function sendStaffResponseEmail(params: {
 
   try {
     const trackingUrl = getTrackingUrl(trackingToken);
-    const { subject, html } = renderStaffResponseEmail({
+    const { subject, html, text } = renderStaffResponseEmail({
       referenceNumber,
       trackingUrl,
       customerName,
@@ -105,6 +106,7 @@ export async function sendStaffResponseEmail(params: {
       to: to.trim(),
       subject,
       html,
+      text,
     });
 
     if (error) {

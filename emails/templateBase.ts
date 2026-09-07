@@ -138,11 +138,14 @@ export function renderEliteHubEmailHtml({
           <!-- Footer -->
           <tr>
             <td style="background-color: #f8fafc; padding: 24px 32px; border-top: 1px solid #e2e8f0; text-align: left;">
-              <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 600; color: #64748b;">
+              <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; color: #475569;">
                 EliteHub Properties Customer Care Team
               </p>
+              <p style="margin: 0 0 8px 0; font-size: 11.5px; line-height: 1.5; color: #64748b;">
+                This is an automated notification regarding your complaint. You can post messages and review updates securely through your online tracking portal at any time.
+              </p>
               <p style="margin: 0; font-size: 11px; line-height: 1.5; color: #94a3b8;">
-                This is an automated notification. Please do not reply directly to this email. You can post messages and replies securely through your complaint tracking portal at any time.
+                📬 <em>Tip: To ensure you receive all future updates, please add <strong>care@elitehubproperties.com</strong> to your safe senders or contacts list. If this email was delivered to your <strong>Spam or Junk folder</strong>, please mark it as <strong>"Not Spam"</strong> so critical updates reach your main inbox.</em>
               </p>
             </td>
           </tr>

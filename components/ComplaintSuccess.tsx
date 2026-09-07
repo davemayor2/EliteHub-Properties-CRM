@@ -70,6 +70,27 @@ export default function ComplaintSuccess({ referenceNumber, onReset }: Complaint
         </p>
       </div>
 
+      {/* Email Delivery & Spam Guidance */}
+      <div
+        className="delivery-notice-box"
+        style={{
+          marginTop: '16px',
+          marginBottom: '16px',
+          padding: '12px 16px',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          textAlign: 'left',
+          fontSize: '13px',
+          color: '#475569',
+          lineHeight: '1.5',
+        }}
+      >
+        <p style={{ margin: 0 }}>
+          📧 <strong>Email Notification:</strong> If you provided an email address, a confirmation with your secure tracking link has been sent. If it does not appear in your inbox within 2 minutes, please check your <strong>Spam or Junk folder</strong> and mark it as <strong>&quot;Not Spam&quot;</strong>.
+        </p>
+      </div>
+
       {/* Action Button */}
       <div className="success-actions">
         <button
