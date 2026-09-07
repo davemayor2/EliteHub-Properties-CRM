@@ -9,11 +9,23 @@ import { Search, X, Inbox, Eye, Filter, RefreshCw } from 'lucide-react';
 
 interface ComplaintTableProps {
   initialComplaints: ComplaintRecord[];
+  initialStatus?: string;
+  initialAssigned?: string;
 }
 
-export default function ComplaintTable({ initialComplaints }: ComplaintTableProps) {
+export default function ComplaintTable({
+  initialComplaints,
+  initialStatus,
+  initialAssigned,
+}: ComplaintTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const defaultTab =
+    initialAssigned === 'unassigned'
+      ? 'unassigned'
+      : initialStatus && ['new', 'open', 'pending', 'resolved', 'closed'].includes(initialStatus)
+      ? initialStatus
+      : 'all';
+  const [selectedStatus, setSelectedStatus] = useState<string>(defaultTab);
 
   const filterTabs: { id: string; label: string; count: number }[] = useMemo(() => {
     const counts = {
@@ -23,6 +35,7 @@ export default function ComplaintTable({ initialComplaints }: ComplaintTableProp
       pending: initialComplaints.filter((c) => c.status === 'pending').length,
       resolved: initialComplaints.filter((c) => c.status === 'resolved').length,
       closed: initialComplaints.filter((c) => c.status === 'closed').length,
+      unassigned: initialComplaints.filter((c) => !c.assigned_to).length,
     };
 
     return [
@@ -32,14 +45,19 @@ export default function ComplaintTable({ initialComplaints }: ComplaintTableProp
       { id: 'pending', label: 'Pending', count: counts.pending },
       { id: 'resolved', label: 'Resolved', count: counts.resolved },
       { id: 'closed', label: 'Closed', count: counts.closed },
+      { id: 'unassigned', label: 'Unassigned', count: counts.unassigned },
     ];
   }, [initialComplaints]);
 
   // Filter complaints based on search query and selected status tab
   const filteredComplaints = useMemo(() => {
     return initialComplaints.filter((complaint) => {
-      // 1. Status Filter
-      if (selectedStatus !== 'all' && complaint.status !== selectedStatus) {
+      // 1. Status or Assignment Filter
+      if (selectedStatus === 'unassigned') {
+        if (complaint.assigned_to) {
+          return false;
+        }
+      } else if (selectedStatus !== 'all' && complaint.status !== selectedStatus) {
         return false;
       }
 

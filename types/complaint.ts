@@ -55,6 +55,8 @@ export interface ComplaintRecord {
   tracking_token?: string;
   created_at: string;
   updated_at: string;
+  resolved_at?: string | null;
+  closed_at?: string | null;
   attachments?: ComplaintAttachmentRecord[];
 }
 

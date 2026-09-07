@@ -10,9 +10,18 @@ export const metadata: Metadata = {
   description: 'Search, filter, and review all customer complaints submitted to EliteHub Properties Customer Care.',
 };
 
-export default async function ComplaintsPage() {
+interface ComplaintsPageProps {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+export default async function ComplaintsPage({ searchParams }: ComplaintsPageProps) {
   // 1. Verify active staff member (redirects to /staff/deactivated if inactive)
   const { user, profile, supabase } = await requireStaff('/staff/complaints');
+
+  // 2. Parse initial query parameters
+  const resolvedParams = await searchParams;
+  const initialStatus = typeof resolvedParams?.status === 'string' ? resolvedParams.status : undefined;
+  const initialAssigned = typeof resolvedParams?.assigned === 'string' ? resolvedParams.assigned : undefined;
 
   // 3. Fetch all complaints from Supabase
   const { data: complaintsData, error: complaintsError } = await supabase
@@ -37,7 +46,11 @@ export default async function ComplaintsPage() {
 
       {/* Interactive Complaint Table with Search and Filtering */}
       <div className="staff-section-card complaints-directory-card">
-        <ComplaintTable initialComplaints={allComplaints} />
+        <ComplaintTable
+          initialComplaints={allComplaints}
+          initialStatus={initialStatus}
+          initialAssigned={initialAssigned}
+        />
       </div>
     </div>
   );
