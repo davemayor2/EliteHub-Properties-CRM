@@ -7,11 +7,18 @@ import FileUpload from '@/components/FileUpload';
 import ComplaintSuccess from '@/components/ComplaintSuccess';
 import { ComplaintSubmissionResponse } from '@/types/complaint';
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 interface FormDataState {
   fullName: string;
   email: string;
   countryCode: string;
   phone: string;
+  categoryId: string;
   subject: string;
   description: string;
 }
@@ -21,17 +28,37 @@ const INITIAL_FORM_STATE: FormDataState = {
   email: '',
   countryCode: '+234',
   phone: '',
+  categoryId: '',
   subject: '',
   description: '',
 };
 
-export default function ComplaintForm() {
+interface ComplaintFormProps {
+  initialCategories?: CategoryOption[];
+}
+
+export default function ComplaintForm({ initialCategories = [] }: ComplaintFormProps) {
+  const [categories, setCategories] = useState<CategoryOption[]>(initialCategories);
   const [formData, setFormData] = useState<FormDataState>(INITIAL_FORM_STATE);
   const [attachment, setAttachment] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [generatedRefNumber, setGeneratedRefNumber] = useState<string | null>(null);
+
+  // If initialCategories was empty, fetch client-side as fallback
+  React.useEffect(() => {
+    if (categories.length === 0) {
+      fetch('/api/categories')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && Array.isArray(data.categories)) {
+            setCategories(data.categories);
+          }
+        })
+        .catch((err) => console.error('[ComplaintForm] Categories fetch error:', err));
+    }
+  }, [categories.length]);
 
   // Field change handler
   const handleChange = (field: keyof FormDataState, value: string) => {
@@ -70,6 +97,10 @@ export default function ComplaintForm() {
       if (!/^\d{7,15}$/.test(cleanPhone)) {
         newErrors.phone = 'Please enter a valid phone number (7 to 15 digits)';
       }
+    }
+
+    if (!formData.categoryId) {
+      newErrors.categoryId = 'Please select a complaint category';
     }
 
     if (!formData.subject.trim()) {
@@ -121,6 +152,7 @@ export default function ComplaintForm() {
         submitData.append('email', formData.email.trim());
       }
       submitData.append('phone', fullPhoneNumber);
+      submitData.append('categoryId', formData.categoryId);
       submitData.append('subject', formData.subject.trim());
       submitData.append('description', formData.description.trim());
 
@@ -253,7 +285,47 @@ export default function ComplaintForm() {
           )}
         </div>
 
-        {/* ROW 3: Subject */}
+        {/* ROW 3: Complaint Category */}
+        <div className="form-field">
+          <label htmlFor="categoryId" className="form-label">
+            What is your complaint about? <span className="required-asterisk">*</span>
+          </label>
+          <select
+            id="categoryId"
+            name="categoryId"
+            className={`form-input form-select ${errors.categoryId ? 'has-error' : ''}`}
+            value={formData.categoryId}
+            onChange={(e) => handleChange('categoryId', e.target.value)}
+            disabled={isSubmitting}
+            required
+            aria-required="true"
+            aria-invalid={!!errors.categoryId}
+            aria-describedby={errors.categoryId ? 'categoryId-error' : undefined}
+          >
+            <option value="">Select a category</option>
+            {categories.map((cat) => (
+              <option key={cat.id} value={cat.id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
+          {errors.categoryId && (
+            <div id="categoryId-error" className="field-error-msg" role="alert">
+              <AlertCircle size={13} />
+              <span>{errors.categoryId}</span>
+            </div>
+          )}
+          {(() => {
+            const selectedCat = categories.find((c) => c.id === formData.categoryId);
+            return selectedCat?.description ? (
+              <p className="form-helper-text" style={{ marginTop: '5px', fontSize: '12.5px' }}>
+                {selectedCat.description}
+              </p>
+            ) : null;
+          })()}
+        </div>
+
+        {/* ROW 4: Subject */}
         <div className="form-field">
           <label htmlFor="subject" className="form-label">
             Subject <span className="required-asterisk">*</span>

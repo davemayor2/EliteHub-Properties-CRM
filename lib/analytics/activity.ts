@@ -26,6 +26,14 @@ function formatActivityDescription(
       return 'Customer sent a reply';
     case 'internal_note_added':
       return `${actorName} added an internal note`;
+    case 'category_changed':
+      return `Category changed to ${metadata.new_category_name || 'updated category'}`;
+    case 'department_changed':
+      return `Department changed to ${metadata.new_department_name || 'updated department'}`;
+    case 'auto_assigned':
+      return `Auto-assigned to ${metadata.assigned_to_name || metadata.staff_name || actorName}`;
+    case 'routing_failed':
+      return 'Automatic routing could not find available staff';
     default:
       return `${activityType.replace(/_/g, ' ')}`;
   }

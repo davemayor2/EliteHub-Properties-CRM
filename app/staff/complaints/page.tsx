@@ -23,15 +23,37 @@ export default async function ComplaintsPage({ searchParams }: ComplaintsPagePro
   const initialStatus = typeof resolvedParams?.status === 'string' ? resolvedParams.status : undefined;
   const initialAssigned = typeof resolvedParams?.assigned === 'string' ? resolvedParams.assigned : undefined;
 
-  // 3. Fetch all complaints from Supabase
-  const { data: complaintsData, error: complaintsError } = await supabase
+  // 3. Fetch all complaints with category and department joins
+  let { data: complaintsData, error: complaintsError } = await supabase
     .from('complaints')
-    .select('*')
+    .select(`
+      *,
+      category:complaint_categories(id, name),
+      department:departments(id, name)
+    `)
     .order('created_at', { ascending: false });
 
   if (complaintsError) {
-    console.error('Failed to fetch complaints:', complaintsError);
+    const fallback = await supabase
+      .from('complaints')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (fallback.data) {
+      complaintsData = fallback.data;
+      complaintsError = null;
+    }
   }
+
+  // Fetch departments and categories for filtering
+  const { data: departmentsList } = await supabase
+    .from('departments')
+    .select('id, name')
+    .order('name', { ascending: true });
+
+  const { data: categoriesList } = await supabase
+    .from('complaint_categories')
+    .select('id, name')
+    .order('name', { ascending: true });
 
   const allComplaints: ComplaintRecord[] = (complaintsData || []) as ComplaintRecord[];
 
@@ -50,6 +72,8 @@ export default async function ComplaintsPage({ searchParams }: ComplaintsPagePro
           initialComplaints={allComplaints}
           initialStatus={initialStatus}
           initialAssigned={initialAssigned}
+          departments={departmentsList || []}
+          categories={categoriesList || []}
         />
       </div>
     </div>

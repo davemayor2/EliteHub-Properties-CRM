@@ -2,7 +2,8 @@ import React from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import DashboardHeader from '@/components/staff/DashboardHeader';
-import { User, Mail, Shield, Key, Bell, Lock } from 'lucide-react';
+import Link from 'next/link';
+import { User, Mail, Shield, Key, Bell, Lock, Building2, Tags, ArrowRight } from 'lucide-react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -32,6 +33,7 @@ export default async function StaffSettingsPage() {
   const fullName = profile?.full_name || 'Staff Member';
   const role = (profile?.role || 'staff').toUpperCase();
   const email = user.email || profile?.email || '';
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="settings-page-container">
@@ -100,6 +102,43 @@ export default async function StaffSettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Admin Operational Routing Hub (Admins Only) */}
+        {isAdmin && (
+          <div className="staff-section-card settings-card admin-routing-card" style={{ gridColumn: '1 / -1' }}>
+            <div className="settings-card-header">
+              <Building2 size={20} className="settings-header-icon text-primary" />
+              <div>
+                <h2 className="settings-section-title">Operational Routing & Classifications</h2>
+                <p className="settings-section-desc">Configure customer service departments, complaint taxonomy, and auto-assignment rules.</p>
+              </div>
+            </div>
+
+            <div className="settings-links-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+              <Link href="/staff/settings/departments" className="settings-quick-link-card">
+                <div className="quick-link-icon-box">
+                  <Building2 size={22} />
+                </div>
+                <div className="quick-link-body">
+                  <h3 className="quick-link-title">Departments & Team Allocation</h3>
+                  <p className="quick-link-desc">Manage company departments, workload auto-assignment, and staff membership.</p>
+                </div>
+                <ArrowRight size={16} className="quick-link-arrow" />
+              </Link>
+
+              <Link href="/staff/settings/categories" className="settings-quick-link-card">
+                <div className="quick-link-icon-box">
+                  <Tags size={22} />
+                </div>
+                <div className="quick-link-body">
+                  <h3 className="quick-link-title">Complaint Categories</h3>
+                  <p className="quick-link-desc">Configure customer complaint topics and default department routing rules.</p>
+                </div>
+                <ArrowRight size={16} className="quick-link-arrow" />
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

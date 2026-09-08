@@ -5,20 +5,27 @@ import Link from 'next/link';
 import { ComplaintRecord, ComplaintStatus } from '@/types/complaint';
 import StatusBadge from '@/components/staff/StatusBadge';
 import PriorityBadge from '@/components/staff/PriorityBadge';
-import { Search, X, Inbox, Eye, Filter, RefreshCw } from 'lucide-react';
+import { Search, X, Inbox, Eye, Filter, RefreshCw, Building2, Tag } from 'lucide-react';
 
 interface ComplaintTableProps {
   initialComplaints: ComplaintRecord[];
   initialStatus?: string;
   initialAssigned?: string;
+  departments?: { id: string; name: string }[];
+  categories?: { id: string; name: string }[];
 }
 
 export default function ComplaintTable({
   initialComplaints,
   initialStatus,
   initialAssigned,
+  departments = [],
+  categories = [],
 }: ComplaintTableProps) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
   const defaultTab =
     initialAssigned === 'unassigned'
       ? 'unassigned'
@@ -49,7 +56,7 @@ export default function ComplaintTable({
     ];
   }, [initialComplaints]);
 
-  // Filter complaints based on search query and selected status tab
+  // Filter complaints based on search query, selected status tab, department, and category
   const filteredComplaints = useMemo(() => {
     return initialComplaints.filter((complaint) => {
       // 1. Status or Assignment Filter
@@ -61,7 +68,17 @@ export default function ComplaintTable({
         return false;
       }
 
-      // 2. Text Search Query
+      // 2. Department Filter
+      if (selectedDepartment !== 'all' && complaint.department_id !== selectedDepartment) {
+        return false;
+      }
+
+      // 3. Category Filter
+      if (selectedCategory !== 'all' && complaint.category_id !== selectedCategory) {
+        return false;
+      }
+
+      // 4. Text Search Query
       if (!searchQuery.trim()) {
         return true;
       }
@@ -75,11 +92,13 @@ export default function ComplaintTable({
 
       return refMatch || nameMatch || emailMatch || phoneMatch || subjectMatch;
     });
-  }, [initialComplaints, selectedStatus, searchQuery]);
+  }, [initialComplaints, selectedStatus, selectedDepartment, selectedCategory, searchQuery]);
 
   const handleClearFilters = () => {
     setSearchQuery('');
     setSelectedStatus('all');
+    setSelectedDepartment('all');
+    setSelectedCategory('all');
   };
 
   const formatDate = (dateStr: string) => {
@@ -97,7 +116,11 @@ export default function ComplaintTable({
     }
   };
 
-  const isFilteringActive = searchQuery.trim() !== '' || selectedStatus !== 'all';
+  const isFilteringActive =
+    searchQuery.trim() !== '' ||
+    selectedStatus !== 'all' ||
+    selectedDepartment !== 'all' ||
+    selectedCategory !== 'all';
 
   return (
     <div className="complaints-table-wrapper">
@@ -120,27 +143,57 @@ export default function ComplaintTable({
           ))}
         </div>
 
-        {/* Search Box */}
-        <div className="table-search-box">
-          <Search size={16} className="search-box-icon" />
-          <input
-            type="text"
-            className="table-search-input"
-            placeholder="Search reference, customer, phone, subject..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search complaints"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              className="btn-clear-search"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search input"
+        {/* Search Box & Dropdown Filters */}
+        <div className="table-controls-right">
+          {departments.length > 0 && (
+            <select
+              className="table-filter-select"
+              value={selectedDepartment}
+              onChange={(e) => setSelectedDepartment(e.target.value)}
+              aria-label="Filter by department"
             >
-              <X size={15} />
-            </button>
+              <option value="all">All Departments</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
           )}
+
+          {categories.length > 0 && (
+            <select
+              className="table-filter-select"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              aria-label="Filter by category"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+
+          <div className="table-search-box">
+            <Search size={16} className="search-box-icon" />
+            <input
+              type="text"
+              className="table-search-input"
+              placeholder="Search reference, customer, phone, subject..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Search complaints"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                className="btn-clear-search"
+                onClick={() => setSearchQuery('')}
+                aria-label="Clear search input"
+              >
+                <X size={15} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -231,9 +284,25 @@ export default function ComplaintTable({
                       </div>
                     </td>
 
-                    {/* Subject */}
+                    {/* Subject & Classification Tags */}
                     <td className="cell-subject" title={complaint.subject}>
                       <span className="subject-truncate">{complaint.subject}</span>
+                      {(complaint.department?.name || complaint.category?.name) && (
+                        <div className="table-meta-tags mt-1">
+                          {complaint.department?.name && (
+                            <span className="badge-dept-tag">
+                              <Building2 size={10} className="inline mr-1" />
+                              {complaint.department.name}
+                            </span>
+                          )}
+                          {complaint.category?.name && (
+                            <span className="badge-cat-tag">
+                              <Tag size={10} className="inline mr-1" />
+                              {complaint.category.name}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
 
                     {/* Status Badge */}

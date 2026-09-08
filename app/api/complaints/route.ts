@@ -7,6 +7,7 @@ import {
   deleteComplaintAttachment,
 } from '@/lib/storage';
 import { sendComplaintReceivedEmail, sendNewComplaintAlertToCare } from '@/services/email';
+import { resolveComplaintRouting } from '@/lib/routing/assignComplaint';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_DIGITS_REGEX = /^\d{7,15}$/;
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
     let fullName = '';
     let email: string | null = null;
     let phone = '';
+    let categoryId: string | null = null;
     let subject = '';
     let description = '';
     let attachmentFile: File | null = null;
@@ -37,6 +39,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       const emailRaw = formData.get('email') as string | null;
       email = emailRaw && emailRaw.trim() ? emailRaw.trim() : null;
       phone = (formData.get('phone') as string) || '';
+      const catRaw = formData.get('categoryId') as string | null;
+      categoryId = catRaw && catRaw.trim() ? catRaw.trim() : null;
       subject = (formData.get('subject') as string) || '';
       description = (formData.get('description') as string) || '';
 
@@ -62,6 +66,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       const emailRaw = body.email as string | null | undefined;
       email = emailRaw && typeof emailRaw === 'string' && emailRaw.trim() ? emailRaw.trim() : null;
       phone = (body.phone as string) || '';
+      const catRaw = body.categoryId as string | null | undefined;
+      categoryId = catRaw && typeof catRaw === 'string' && catRaw.trim() ? catRaw.trim() : null;
       subject = (body.subject as string) || '';
       description = (body.description as string) || '';
     }
@@ -90,17 +96,35 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       }
     }
 
-    // 4. Validate subject
+    // 4. Validate category
+    let resolvedCategoryId: string | null = null;
+    if (categoryId) {
+      const { data: catCheck, error: catErr } = await supabaseServer
+        .from('complaint_categories')
+        .select('id, is_active')
+        .eq('id', categoryId)
+        .single();
+
+      if (catErr || !catCheck || !catCheck.is_active) {
+        errors.categoryId = 'The selected complaint category is invalid or inactive';
+      } else {
+        resolvedCategoryId = catCheck.id;
+      }
+    } else {
+      errors.categoryId = 'Complaint category is required';
+    }
+
+    // 5. Validate subject
     if (!subject || typeof subject !== 'string' || !subject.trim()) {
       errors.subject = 'Subject is required';
     }
 
-    // 5. Validate description
+    // 6. Validate description
     if (!description || typeof description !== 'string' || !description.trim()) {
       errors.description = 'Complaint description is required';
     }
 
-    // 6. Validate attachment if present
+    // 7. Validate attachment if present
     if (attachmentFile) {
       const fileValidation = validateAttachment({
         name: attachmentFile.name,
@@ -152,6 +176,37 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
 
     const complaintId = complaintData.id;
     const referenceNumber = complaintData.reference_number;
+
+    // Step 1b: Apply Category, Department, and Intelligent Auto-Assignment Routing
+    try {
+      const routing = await resolveComplaintRouting(supabaseServer, resolvedCategoryId);
+      const updates: Record<string, any> = {};
+      if (resolvedCategoryId) updates.category_id = resolvedCategoryId;
+      if (routing.departmentId) updates.department_id = routing.departmentId;
+      if (routing.assignedTo) updates.assigned_to = routing.assignedTo;
+
+      if (Object.keys(updates).length > 0) {
+        await supabaseServer.from('complaints').update(updates).eq('id', complaintId);
+      }
+
+      // Log auto assignment activity if assigned
+      if (routing.routingStrategy === 'auto' && routing.assignedTo) {
+        await supabaseServer.from('complaint_activity').insert({
+          complaint_id: complaintId,
+          actor_type: 'system',
+          activity_type: 'auto_assigned',
+          metadata: {
+            assigned_to: routing.assignedTo,
+            assigned_name: routing.assignedStaffName,
+            department_name: routing.departmentName,
+            reason: routing.reason,
+          },
+        });
+      }
+    } catch (routeErr) {
+      console.error('[API /api/complaints Routing Warning]:', routeErr);
+      // Non-fatal: routing failure never crashes complaint submission
+    }
     let uploadedFilePath: string | undefined;
     let attachmentId: string | undefined;
 

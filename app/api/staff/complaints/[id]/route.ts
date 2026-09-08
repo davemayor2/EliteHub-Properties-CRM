@@ -24,15 +24,35 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Fetch complaint with attachments and assigned staff profile
-    const { data: complaint, error: complaintError } = await supabase
+    let { data: complaint, error: complaintError } = await supabase
       .from('complaints')
       .select(`
         *,
         assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
+        category:complaint_categories(id, name, description, is_active),
+        department:departments(id, name, is_active, auto_assign_enabled),
         attachments:complaint_attachments(*)
       `)
       .eq('id', id)
       .single();
+
+    if (complaintError) {
+      // Fallback if joined tables do not exist yet
+      const fallback = await supabase
+        .from('complaints')
+        .select(`
+          *,
+          assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
+          attachments:complaint_attachments(*)
+        `)
+        .eq('id', id)
+        .single();
+
+      if (fallback.data) {
+        complaint = fallback.data;
+        complaintError = null;
+      }
+    }
 
     if (complaintError || !complaint) {
       return NextResponse.json({ success: false, message: 'Complaint not found' }, { status: 404 });
@@ -59,12 +79,12 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { status, priority, assigned_to } = body;
+    const { status, priority, assigned_to, category_id, department_id } = body;
 
     // Verify existing complaint
     const { data: existingComplaint, error: fetchErr } = await supabase
       .from('complaints')
-      .select('id, status, email, reference_number, tracking_token, full_name')
+      .select('id, status, priority, assigned_to, email, reference_number, tracking_token, full_name')
       .eq('id', id)
       .single();
 
@@ -117,17 +137,52 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // Execute update
-    const { data: updatedComplaint, error: updateError } = await supabase
+    if (category_id !== undefined) {
+      updates.category_id = category_id === null || category_id === '' ? null : category_id;
+    }
+
+    if (department_id !== undefined) {
+      updates.department_id = department_id === null || department_id === '' ? null : department_id;
+    }
+
+    // Execute update with rich selects and fallback
+    let updatedComplaint: any = null;
+    let updateError: any = null;
+
+    const richUpdate = await supabase
       .from('complaints')
       .update(updates)
       .eq('id', id)
       .select(`
         *,
         assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
+        category:complaint_categories(id, name, description, is_active),
+        department:departments(id, name, is_active, auto_assign_enabled),
         attachments:complaint_attachments(*)
       `)
       .single();
+
+    if (richUpdate.error) {
+      // If joined relation error or column error, retry without category/department joins
+      const fallbackUpdate = await supabase
+        .from('complaints')
+        .update(updates)
+        .eq('id', id)
+        .select(`
+          *,
+          assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
+          attachments:complaint_attachments(*)
+        `)
+        .single();
+
+      if (fallbackUpdate.error) {
+        updateError = fallbackUpdate.error;
+      } else {
+        updatedComplaint = fallbackUpdate.data;
+      }
+    } else {
+      updatedComplaint = richUpdate.data;
+    }
 
     if (updateError) {
       console.error('[API /api/staff/complaints/[id] PATCH Error]:', updateError);

@@ -9,6 +9,8 @@ import {
   LayoutDashboard,
   Inbox,
   Users,
+  Building2,
+  Tags,
   Settings,
   Shield,
   X,
@@ -51,6 +53,18 @@ export default function Sidebar({
             label: 'Team',
             href: '/staff/team',
             icon: Users,
+            badge: null,
+          },
+          {
+            label: 'Departments',
+            href: '/staff/settings/departments',
+            icon: Building2,
+            badge: null,
+          },
+          {
+            label: 'Categories',
+            href: '/staff/settings/categories',
+            icon: Tags,
             badge: null,
           },
           {

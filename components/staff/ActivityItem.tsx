@@ -14,6 +14,10 @@ import {
   User,
   Shield,
   Bot,
+  Tag,
+  Building2,
+  Sparkles,
+  AlertCircle,
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -132,6 +136,57 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
           </div>
         );
 
+      case 'category_changed': {
+        const prev = String(activity.metadata?.old_category_name || 'None');
+        const next = String(activity.metadata?.new_category_name || 'None');
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline">Category changed</span>
+            <div className="activity-transition-pill">
+              <span className="category-pill">{prev}</span>
+              <ArrowRight size={11} className="transition-arrow" />
+              <span className="category-pill">{next}</span>
+            </div>
+          </div>
+        );
+      }
+
+      case 'department_changed': {
+        const prev = String(activity.metadata?.old_department_name || 'None');
+        const next = String(activity.metadata?.new_department_name || 'None');
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline">Department changed</span>
+            <div className="activity-transition-pill">
+              <span className="department-pill">{prev}</span>
+              <ArrowRight size={11} className="transition-arrow" />
+              <span className="department-pill">{next}</span>
+            </div>
+          </div>
+        );
+      }
+
+      case 'auto_assigned': {
+        const assignee = String(activity.metadata?.assigned_to_name || activity.metadata?.staff_name || 'Staff Member');
+        const dept = activity.metadata?.department_name ? ` (${activity.metadata.department_name})` : '';
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline">Auto-assigned to</span>
+            <span className="activity-highlight-name">{assignee}{dept}</span>
+          </div>
+        );
+      }
+
+      case 'routing_failed': {
+        const reason = String(activity.metadata?.reason || 'No available staff in assigned department');
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-warning">Routing Notice</span>
+            <span className="text-xs text-muted">{reason}</span>
+          </div>
+        );
+      }
+
       default:
         return (
           <div className="activity-event-detail">
@@ -161,6 +216,14 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         return { icon: <MessageCircle size={14} />, className: 'icon-customer-msg' };
       case 'internal_note_added':
         return { icon: <StickyNote size={14} />, className: 'icon-note' };
+      case 'category_changed':
+        return { icon: <Tag size={14} />, className: 'icon-category' };
+      case 'department_changed':
+        return { icon: <Building2 size={14} />, className: 'icon-department' };
+      case 'auto_assigned':
+        return { icon: <Sparkles size={14} />, className: 'icon-auto-assign' };
+      case 'routing_failed':
+        return { icon: <AlertCircle size={14} />, className: 'icon-routing-warn' };
       default:
         return { icon: <Clock size={14} />, className: 'icon-default' };
     }

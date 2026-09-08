@@ -6,12 +6,15 @@ import { ArrowLeft, Calendar, ShieldCheck } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 import PriorityBadge from './PriorityBadge';
 import { ComplaintStatus, ComplaintPriority } from '@/types/complaint';
+import { Tag, Building2 } from 'lucide-react';
 
 interface ComplaintDetailsHeaderProps {
   referenceNumber: string;
   status: ComplaintStatus;
   priority: ComplaintPriority;
   createdAt: string;
+  categoryName?: string | null;
+  departmentName?: string | null;
 }
 
 export default function ComplaintDetailsHeader({
@@ -19,6 +22,8 @@ export default function ComplaintDetailsHeader({
   status,
   priority,
   createdAt,
+  categoryName,
+  departmentName,
 }: ComplaintDetailsHeaderProps) {
   const formattedDate = React.useMemo(() => {
     try {
@@ -73,6 +78,18 @@ export default function ComplaintDetailsHeader({
         </div>
 
         <div className="title-right-badges">
+          {departmentName && (
+            <span className="badge-department" title={`Department: ${departmentName}`}>
+              <Building2 size={12} className="inline mr-1" />
+              {departmentName}
+            </span>
+          )}
+          {categoryName && (
+            <span className="badge-category" title={`Category: ${categoryName}`}>
+              <Tag size={12} className="inline mr-1" />
+              {categoryName}
+            </span>
+          )}
           <StatusBadge status={status} />
           <PriorityBadge priority={priority} />
         </div>

@@ -22,6 +22,10 @@ import InternalNotes from './InternalNotes';
 import ActivityTimeline from './ActivityTimeline';
 import { ComplaintNoteRecord } from '@/types/note';
 import { ComplaintActivityRecord } from '@/types/activity';
+import { ComplaintCategoryRecord } from '@/types/category';
+import { DepartmentRecord } from '@/types/department';
+import CategorySelect from './CategorySelect';
+import DepartmentSelect from './DepartmentSelect';
 import { Sliders } from 'lucide-react';
 
 interface ComplaintDetailWorkspaceProps {
@@ -68,6 +72,34 @@ export default function ComplaintDetailWorkspace({
     }));
   };
 
+  const handleCategoryChange = (newCat: ComplaintCategoryRecord | null) => {
+    setComplaint((prev) => ({
+      ...prev,
+      category_id: newCat?.id || null,
+      category: newCat ? {
+        id: newCat.id,
+        name: newCat.name,
+        description: newCat.description,
+        is_active: newCat.is_active,
+      } : undefined,
+      updated_at: new Date().toISOString(),
+    }));
+  };
+
+  const handleDepartmentChange = (newDept: DepartmentRecord | null) => {
+    setComplaint((prev) => ({
+      ...prev,
+      department_id: newDept?.id || null,
+      department: newDept ? {
+        id: newDept.id,
+        name: newDept.name,
+        is_active: newDept.is_active,
+        auto_assign_enabled: newDept.auto_assign_enabled,
+      } : undefined,
+      updated_at: new Date().toISOString(),
+    }));
+  };
+
   return (
     <div className="complaint-detail-workspace">
       {/* Dynamic Header with Status & Priority Badges */}
@@ -76,6 +108,8 @@ export default function ComplaintDetailWorkspace({
         status={complaint.status}
         priority={complaint.priority}
         createdAt={complaint.created_at}
+        categoryName={complaint.category?.name}
+        departmentName={complaint.department?.name}
       />
 
       {/* Two-Column Responsive Grid */}
@@ -151,6 +185,34 @@ export default function ComplaintDetailWorkspace({
                 complaintId={complaint.id}
                 currentPriority={complaint.priority}
                 onPriorityChange={handlePriorityChange}
+              />
+
+              <div className="control-divider" />
+
+              {/* Category Select */}
+              <CategorySelect
+                complaintId={complaint.id}
+                currentCategoryId={complaint.category_id || null}
+                currentCategoryName={complaint.category?.name || null}
+                onCategoryChange={handleCategoryChange}
+                onDepartmentAutoSuggest={(deptId) => {
+                  if (deptId) {
+                    setComplaint((prev) => ({
+                      ...prev,
+                      department_id: deptId,
+                    }));
+                  }
+                }}
+              />
+
+              <div className="control-divider" />
+
+              {/* Department Select */}
+              <DepartmentSelect
+                complaintId={complaint.id}
+                currentDepartmentId={complaint.department_id || null}
+                currentDepartmentName={complaint.department?.name || null}
+                onDepartmentChange={handleDepartmentChange}
               />
 
               <div className="control-divider" />

@@ -1,3 +1,6 @@
+import { DepartmentRecord } from './department';
+import { ComplaintCategoryRecord } from './category';
+
 export type ComplaintStatus = 'new' | 'open' | 'pending' | 'resolved' | 'closed';
 export type ComplaintPriority = 'low' | 'normal' | 'high' | 'urgent';
 export type SenderType = 'staff' | 'customer' | 'system';
@@ -8,6 +11,7 @@ export interface ComplaintSubmissionRequest {
   phone: string;
   subject: string;
   description: string;
+  categoryId?: string;
 }
 
 export interface ComplaintAttachmentRecord {
@@ -57,11 +61,18 @@ export interface ComplaintRecord {
   updated_at: string;
   resolved_at?: string | null;
   closed_at?: string | null;
+  category_id?: string | null;
+  department_id?: string | null;
+  category?: ComplaintCategoryRecord | null;
+  department?: DepartmentRecord | null;
   attachments?: ComplaintAttachmentRecord[];
 }
 
 export * from './note';
 export * from './activity';
+export * from './department';
+export * from './category';
+export * from './routing';
 
 export interface ComplaintMessageRecord {
   id: string;
@@ -125,4 +136,6 @@ export interface ComplaintUpdatePayload {
   status?: ComplaintStatus;
   priority?: ComplaintPriority;
   assigned_to?: string | null;
+  category_id?: string | null;
+  department_id?: string | null;
 }

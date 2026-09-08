@@ -31,15 +31,32 @@ export default async function ComplaintDetailPage({ params }: ComplaintDetailPag
   // 1. Verify active staff user (redirects to /staff/deactivated if inactive)
   const { user, profile, supabase } = await requireStaff(`/staff/complaints/${id}`);
 
-  // 2. Fetch complaint record with assigned staff profile
-  const { data: rawComplaint, error: complaintError } = await supabase
+  // 2. Fetch complaint record with assigned staff profile, category, and department
+  let { data: rawComplaint, error: complaintError } = await supabase
     .from('complaints')
     .select(`
       *,
-      assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role)
+      assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
+      category:complaint_categories(id, name, description, is_active),
+      department:departments(id, name, is_active, auto_assign_enabled)
     `)
     .eq('id', id)
     .single();
+
+  if (complaintError) {
+    const fallback = await supabase
+      .from('complaints')
+      .select(`
+        *,
+        assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role)
+      `)
+      .eq('id', id)
+      .single();
+    if (fallback.data) {
+      rawComplaint = fallback.data;
+      complaintError = null;
+    }
+  }
 
   if (complaintError || !rawComplaint) {
     notFound();
