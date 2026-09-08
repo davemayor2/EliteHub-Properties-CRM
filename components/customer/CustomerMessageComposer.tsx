@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { Send, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Loader2, AlertCircle, Paperclip } from 'lucide-react';
 import { CustomerMessageView, ComplaintStatus } from '@/types/complaint';
+import AttachmentUploader from '@/components/attachments/AttachmentUploader';
 
 interface CustomerMessageComposerProps {
   token: string;
@@ -14,6 +15,8 @@ export default function CustomerMessageComposer({
   onMessageSent,
 }: CustomerMessageComposerProps) {
   const [content, setContent] = useState('');
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [showUploader, setShowUploader] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -33,21 +36,38 @@ export default function CustomerMessageComposer({
       setIsSubmitting(true);
       setErrorMsg(null);
 
-      const res = await fetch(`/api/track/${token}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ message: trimmed }),
-      });
+      let response: Response;
 
-      const data = await res.json();
+      if (attachments.length > 0) {
+        const formData = new FormData();
+        formData.append('message', trimmed);
+        attachments.forEach((file) => {
+          formData.append('attachments', file);
+        });
 
-      if (!res.ok || !data.success) {
+        response = await fetch(`/api/track/${token}/messages`, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        response = await fetch(`/api/track/${token}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ message: trimmed }),
+        });
+      }
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
         throw new Error(data.message || 'Unable to submit your message. Please try again.');
       }
 
       setContent('');
+      setAttachments([]);
+      setShowUploader(false);
       onMessageSent(data.message, data.status);
 
       if (textareaRef.current) {
@@ -70,7 +90,23 @@ export default function CustomerMessageComposer({
 
   return (
     <div className="customer-composer-card">
-      <h4 className="composer-heading">Send a Reply to Customer Care</h4>
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="composer-heading mb-0">Send a Reply to Customer Care</h4>
+        <button
+          type="button"
+          onClick={() => setShowUploader((prev) => !prev)}
+          className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-lg transition ${
+            showUploader || attachments.length > 0
+              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+              : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+          }`}
+        >
+          <Paperclip size={13} />
+          <span>
+            {attachments.length > 0 ? `${attachments.length} file(s) attached` : 'Attach Evidence'}
+          </span>
+        </button>
+      </div>
 
       {errorMsg && (
         <div className="customer-composer-error">
@@ -90,6 +126,18 @@ export default function CustomerMessageComposer({
           placeholder="Write a message..."
           className="customer-composer-textarea"
         />
+
+        {showUploader && (
+          <div className="mt-3 p-3 bg-slate-50/80 rounded-xl border border-slate-200/80">
+            <AttachmentUploader
+              files={attachments}
+              onFilesChange={(newFiles) => setAttachments(newFiles)}
+              disabled={isSubmitting}
+              label="Attach Supporting Evidence"
+              helperText="Add images, screenshots, receipts, or PDF documents (Max 5 files, 10MB each)."
+            />
+          </div>
+        )}
 
         <div className="customer-composer-actions">
           <span className="customer-composer-note">

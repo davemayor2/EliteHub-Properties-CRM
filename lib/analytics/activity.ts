@@ -52,6 +52,12 @@ function formatActivityDescription(
       return `Customer submitted satisfaction rating (${metadata.rating || 'rated'} / 5 stars)`;
     case 'low_satisfaction_received':
       return `Low satisfaction rating (${metadata.rating || 'low'} / 5) received from customer`;
+    case 'attachment_uploaded':
+      return `${actorName || 'User'} uploaded supporting file "${metadata.file_name || 'attachment'}"`;
+    case 'internal_attachment_uploaded':
+      return `${actorName || 'Staff'} uploaded confidential internal document "${metadata.file_name || 'attachment'}"`;
+    case 'attachment_deleted':
+      return `${actorName || 'Staff'} deleted attachment "${metadata.file_name || 'attachment'}"`;
     default:
       return `${activityType.replace(/_/g, ' ')}`;
   }

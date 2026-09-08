@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Paperclip, FileText, Image as ImageIcon, Download, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 import { CustomerAttachmentView } from '@/types/complaint';
+import AttachmentPreviewDialog from '@/components/attachments/AttachmentPreviewDialog';
 
 interface CustomerAttachmentsProps {
   token: string;
@@ -16,6 +17,12 @@ export default function CustomerAttachments({
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Preview Dialog State
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewFile, setPreviewFile] = useState<CustomerAttachmentView | null>(null);
+  const [previewSignedUrl, setPreviewSignedUrl] = useState<string | null>(null);
+  const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+
   if (!attachments || attachments.length === 0) {
     return null;
   }
@@ -27,34 +34,58 @@ export default function CustomerAttachments({
     return `${(kb / 1024).toFixed(2)} MB`;
   };
 
-  const handleAccess = async (att: CustomerAttachmentView, isDownload: boolean) => {
+  const fetchUrl = async (att: CustomerAttachmentView, isDownload: boolean): Promise<string> => {
+    const endpoint = `/api/track/${token}/attachments/${att.id}/url${isDownload ? '?download=true' : ''}`;
+    const res = await fetch(endpoint);
+    const data = await res.json();
+
+    if (!res.ok || !data.success || !data.signedUrl) {
+      throw new Error(data.message || 'Unable to load attachment securely.');
+    }
+
+    return data.signedUrl;
+  };
+
+  const handlePreview = async (att: CustomerAttachmentView) => {
     try {
-      setLoadingId(`${att.id}-${isDownload ? 'download' : 'preview'}`);
       setErrorMsg(null);
+      setPreviewFile(att);
+      setPreviewSignedUrl(null);
+      setIsPreviewLoading(true);
+      setPreviewOpen(true);
+      setLoadingId(`${att.id}-preview`);
 
-      const endpoint = `/api/track/${token}/attachments/${att.id}/url${isDownload ? '?download=true' : ''}`;
-      const res = await fetch(endpoint);
-      const data = await res.json();
-
-      if (!res.ok || !data.success || !data.signedUrl) {
-        throw new Error(data.message || 'Unable to load attachment securely.');
-      }
-
-      if (isDownload) {
-        const anchor = document.createElement('a');
-        anchor.href = data.signedUrl;
-        anchor.download = att.file_name;
-        anchor.target = '_blank';
-        anchor.rel = 'noopener noreferrer';
-        document.body.appendChild(anchor);
-        anchor.click();
-        document.body.removeChild(anchor);
-      } else {
-        window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
-      }
+      const url = await fetchUrl(att, false);
+      setPreviewSignedUrl(url);
     } catch (err) {
-      console.error('[Customer Attachment Access Error]:', err);
-      setErrorMsg(err instanceof Error ? err.message : 'Error generating file link.');
+      console.error('[Customer Attachment Preview Error]:', err);
+      setErrorMsg(err instanceof Error ? err.message : 'Error loading attachment preview.');
+      setPreviewOpen(false);
+    } finally {
+      setIsPreviewLoading(false);
+      setLoadingId(null);
+    }
+  };
+
+  const handleDownload = async (att: CustomerAttachmentView) => {
+    try {
+      setErrorMsg(null);
+      setLoadingId(`${att.id}-download`);
+
+      const url = await fetchUrl(att, true);
+      const fileName = att.original_filename || att.file_name || 'attachment';
+
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.target = '_blank';
+      anchor.rel = 'noopener noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+    } catch (err) {
+      console.error('[Customer Attachment Download Error]:', err);
+      setErrorMsg(err instanceof Error ? err.message : 'Error downloading attachment.');
     } finally {
       setLoadingId(null);
     }
@@ -76,7 +107,8 @@ export default function CustomerAttachments({
 
       <div className="customer-attachments-list">
         {attachments.map((att) => {
-          const isImage = (att.file_type && att.file_type.startsWith('image/')) || /\.(jpg|jpeg|png|webp)$/i.test(att.file_name);
+          const fileName = att.original_filename || att.file_name;
+          const isImage = (att.file_type && att.file_type.startsWith('image/')) || /\.(jpg|jpeg|png|webp)$/i.test(fileName);
           const isPreviewing = loadingId === `${att.id}-preview`;
           const isDownloading = loadingId === `${att.id}-download`;
 
@@ -87,8 +119,8 @@ export default function CustomerAttachments({
                   {isImage ? <ImageIcon size={18} color="#0284c7" /> : <FileText size={18} color="#145E3D" />}
                 </div>
                 <div className="file-text-details">
-                  <span className="file-name" title={att.file_name}>
-                    {att.file_name}
+                  <span className="file-name" title={fileName}>
+                    {fileName}
                   </span>
                   <span className="file-meta-size">{formatFileSize(att.file_size)}</span>
                 </div>
@@ -97,7 +129,7 @@ export default function CustomerAttachments({
               <div className="attachment-button-group">
                 <button
                   type="button"
-                  onClick={() => handleAccess(att, false)}
+                  onClick={() => handlePreview(att)}
                   disabled={Boolean(loadingId)}
                   className="btn-customer-att btn-att-preview"
                   title="View attachment"
@@ -108,7 +140,7 @@ export default function CustomerAttachments({
 
                 <button
                   type="button"
-                  onClick={() => handleAccess(att, true)}
+                  onClick={() => handleDownload(att)}
                   disabled={Boolean(loadingId)}
                   className="btn-customer-att btn-att-download"
                   title="Download attachment"
@@ -121,6 +153,23 @@ export default function CustomerAttachments({
           );
         })}
       </div>
+
+      {/* Shared Preview Modal */}
+      {previewFile && (
+        <AttachmentPreviewDialog
+          isOpen={previewOpen}
+          onClose={() => {
+            setPreviewOpen(false);
+            setPreviewFile(null);
+            setPreviewSignedUrl(null);
+          }}
+          fileName={previewFile.original_filename || previewFile.file_name}
+          signedUrl={previewSignedUrl}
+          attachmentType={previewFile.attachment_type}
+          isLoading={isPreviewLoading}
+          onDownload={() => handleDownload(previewFile)}
+        />
+      )}
     </div>
   );
 }

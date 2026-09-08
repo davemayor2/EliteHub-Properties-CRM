@@ -82,8 +82,9 @@ export async function sendStaffResponseEmail(params: {
   referenceNumber: string;
   trackingToken: string;
   customerName?: string;
+  hasAttachments?: boolean;
 }): Promise<EmailSendResult> {
-  const { to, referenceNumber, trackingToken, customerName } = params;
+  const { to, referenceNumber, trackingToken, customerName, hasAttachments = false } = params;
 
   if (!isValidEmail(to)) {
     console.log(`[Email Service]: Skipped staff response email (no valid email for ${referenceNumber}).`);
@@ -101,6 +102,7 @@ export async function sendStaffResponseEmail(params: {
       referenceNumber,
       trackingUrl,
       customerName,
+      hasAttachments,
     });
 
     const { data, error } = await resend.emails.send({

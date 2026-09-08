@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Send, AlertCircle } from 'lucide-react';
 import PhoneInput from '@/components/PhoneInput';
-import FileUpload from '@/components/FileUpload';
+import AttachmentUploader from '@/components/attachments/AttachmentUploader';
 import ComplaintSuccess from '@/components/ComplaintSuccess';
 import { ComplaintSubmissionResponse } from '@/types/complaint';
 
@@ -40,7 +40,7 @@ interface ComplaintFormProps {
 export default function ComplaintForm({ initialCategories = [] }: ComplaintFormProps) {
   const [categories, setCategories] = useState<CategoryOption[]>(initialCategories);
   const [formData, setFormData] = useState<FormDataState>(INITIAL_FORM_STATE);
-  const [attachment, setAttachment] = useState<File | null>(null);
+  const [attachments, setAttachments] = useState<File[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -118,7 +118,7 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
   // Reset form and return to form view
   const handleReset = () => {
     setFormData(INITIAL_FORM_STATE);
-    setAttachment(null);
+    setAttachments([]);
     setErrors({});
     setSubmitError(null);
     setGeneratedRefNumber(null);
@@ -156,9 +156,9 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
       submitData.append('subject', formData.subject.trim());
       submitData.append('description', formData.description.trim());
 
-      if (attachment) {
-        submitData.append('attachment', attachment);
-      }
+      attachments.forEach((file) => {
+        submitData.append('attachments', file);
+      });
 
       const response = await fetch('/api/complaints', {
         method: 'POST',
@@ -381,11 +381,11 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
           )}
         </div>
 
-        {/* ROW 5: Attachment Upload */}
-        <FileUpload
-          file={attachment}
-          onFileSelect={(f: File) => {
-            setAttachment(f);
+        {/* ROW 5: Supporting Documents & Evidence */}
+        <AttachmentUploader
+          files={attachments}
+          onFilesChange={(newFiles) => {
+            setAttachments(newFiles);
             if (errors.attachment) {
               setErrors((prev) => {
                 const next = { ...prev };
@@ -394,8 +394,9 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
               });
             }
           }}
-          onFileRemove={() => setAttachment(null)}
           disabled={isSubmitting}
+          label="Supporting Documents & Evidence"
+          helperText="Upload screenshots, receipts, or other files that may help us understand your complaint (PDF, JPG, PNG, WebP, TXT up to 10MB each. Max 5 files)."
         />
         {errors.attachment && (
           <div className="field-error-msg" style={{ marginTop: '8px' }} role="alert">
@@ -414,7 +415,11 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
           {isSubmitting ? (
             <>
               <div className="spinner" aria-hidden="true" />
-              <span>{attachment ? 'Submitting & Uploading Attachment...' : 'Submitting Complaint...'}</span>
+              <span>
+                {attachments.length > 0
+                  ? `Submitting & Uploading ${attachments.length} File${attachments.length === 1 ? '' : 's'}...`
+                  : 'Submitting Complaint...'}
+              </span>
             </>
           ) : (
             <>

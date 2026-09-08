@@ -5,7 +5,9 @@ import {
   validateAttachment,
   uploadComplaintAttachment,
   deleteComplaintAttachment,
+  MAX_ATTACHMENTS_PER_ACTION,
 } from '@/lib/storage';
+import { uploadAttachment } from '@/lib/attachments';
 import { sendComplaintReceivedEmail, sendNewComplaintAlertToCare } from '@/services/email';
 import { resolveComplaintRouting } from '@/lib/routing/assignComplaint';
 import { getSlaPolicy, calculateDeadlines } from '@/lib/sla';
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
     let categoryId: string | null = null;
     let subject = '';
     let description = '';
-    let attachmentFile: File | null = null;
+    let attachmentFiles: File[] = [];
 
     if (contentType.includes('multipart/form-data')) {
       let formData: FormData;
@@ -45,9 +47,15 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       subject = (formData.get('subject') as string) || '';
       description = (formData.get('description') as string) || '';
 
-      const fileEntry = formData.get('attachment');
-      if (fileEntry instanceof File && fileEntry.size > 0 && fileEntry.name) {
-        attachmentFile = fileEntry;
+      // Collect all attachment files (support both 'attachments' and legacy 'attachment')
+      const allFileEntries = [
+        ...formData.getAll('attachments'),
+        ...formData.getAll('attachment'),
+      ];
+      for (const entry of allFileEntries) {
+        if (entry instanceof File && entry.size > 0 && entry.name) {
+          attachmentFiles.push(entry);
+        }
       }
     } else {
       let body: Record<string, unknown>;
@@ -125,16 +133,21 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       errors.description = 'Complaint description is required';
     }
 
-    // 7. Validate attachment if present
-    if (attachmentFile) {
-      const fileValidation = validateAttachment({
-        name: attachmentFile.name,
-        size: attachmentFile.size,
-        type: attachmentFile.type,
-      });
+    // 7. Validate attachments if present
+    if (attachmentFiles.length > MAX_ATTACHMENTS_PER_ACTION) {
+      errors.attachment = `You can upload a maximum of ${MAX_ATTACHMENTS_PER_ACTION} files per complaint.`;
+    } else {
+      for (const file of attachmentFiles) {
+        const fileValidation = validateAttachment({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+        });
 
-      if (!fileValidation.valid) {
-        errors.attachment = fileValidation.error || 'Invalid attachment file';
+        if (!fileValidation.valid) {
+          errors.attachment = `"${file.name}": ${fileValidation.error || 'Invalid attachment file'}`;
+          break;
+        }
       }
     }
 
@@ -223,63 +236,54 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       console.error('[API /api/complaints Routing/SLA Warning]:', routeErr);
       // Non-fatal: routing or SLA failure never crashes complaint submission
     }
-    let uploadedFilePath: string | undefined;
-    let attachmentId: string | undefined;
+    let uploadedCount = 0;
+    const uploadedPaths: string[] = [];
+    let firstAttachmentId: string | undefined;
+    let firstUploadedPath: string | undefined;
 
-    // Step 2: If an attachment was provided, upload to Supabase Storage and link in database
-    if (attachmentFile) {
-      const arrayBuffer = await attachmentFile.arrayBuffer();
-      const fileBuffer = Buffer.from(arrayBuffer);
+    // Step 2: Upload all attachments
+    if (attachmentFiles.length > 0) {
+      for (const file of attachmentFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const fileBuffer = Buffer.from(arrayBuffer);
 
-      // Upload to private Supabase Storage bucket
-      const uploadResult = await uploadComplaintAttachment(
-        complaintId,
-        fileBuffer,
-        attachmentFile.name,
-        attachmentFile.type
-      );
+        const uploadResult = await uploadAttachment({
+          complaintId,
+          fileBuffer,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type || 'application/octet-stream',
+          visibility: 'customer_visible',
+          actorType: 'customer',
+          actorName: sanitizedFullName,
+        });
 
-      if (!uploadResult.success || !uploadResult.filePath) {
-        console.error('[API /api/complaints Upload Failure]: Rolling back complaint', complaintId);
-        // Rollback: Delete the complaint record so no orphaned complaint without attachment is left
-        await supabaseServer.rpc('rollback_complaint_submission', { p_complaint_id: complaintId });
+        if (!uploadResult.success) {
+          console.error('[API /api/complaints Upload Failure]: Rolling back complaint', complaintId, uploadResult.error);
+          // Rollback: Clean up any files already uploaded and remove complaint
+          for (const p of uploadedPaths) {
+            await deleteComplaintAttachment(p).catch(() => {});
+          }
+          await supabaseServer.rpc('rollback_complaint_submission', { p_complaint_id: complaintId });
 
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'We were unable to upload your attachment. Please try again.',
-          },
-          { status: 500 }
-        );
+          return NextResponse.json(
+            {
+              success: false,
+              message: `We were unable to upload "${file.name}". Please try again.`,
+            },
+            { status: 500 }
+          );
+        }
+
+        if (uploadResult.attachment?.storage_path) {
+          uploadedPaths.push(uploadResult.attachment.storage_path);
+          if (!firstAttachmentId && uploadResult.attachment.id) {
+            firstAttachmentId = uploadResult.attachment.id;
+            firstUploadedPath = uploadResult.attachment.storage_path;
+          }
+        }
+        uploadedCount++;
       }
-
-      uploadedFilePath = uploadResult.filePath;
-
-      // Link attachment in complaint_attachments table
-      const { data: attachRecord, error: attachDbError } = await supabaseServer.rpc('attach_complaint_file', {
-        p_complaint_id: complaintId,
-        p_file_name: attachmentFile.name,
-        p_file_path: uploadedFilePath,
-        p_file_type: attachmentFile.type || null,
-        p_file_size: attachmentFile.size,
-      });
-
-      if (attachDbError) {
-        console.error('[API /api/complaints Attachment DB Failure]: Rolling back storage & complaint', attachDbError);
-        // Rollback: Remove uploaded storage file and delete complaint record
-        await deleteComplaintAttachment(uploadedFilePath);
-        await supabaseServer.rpc('rollback_complaint_submission', { p_complaint_id: complaintId });
-
-        return NextResponse.json(
-          {
-            success: false,
-            message: 'We were unable to save your attachment details. Please try again.',
-          },
-          { status: 500 }
-        );
-      }
-
-      attachmentId = attachRecord?.id;
     }
 
     // Step 3: Trigger Complaint Notifications (non-blocking)
@@ -317,8 +321,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
         referenceNumber,
         id: complaintId,
         trackingToken: complaintData.tracking_token,
-        attachmentId,
-        attachmentPath: uploadedFilePath,
+        attachmentId: firstAttachmentId,
+        attachmentPath: firstUploadedPath,
+        attachmentCount: uploadedCount,
       },
       { status: 200 }
     );

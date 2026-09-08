@@ -1,5 +1,6 @@
 import { DepartmentRecord } from './department';
 import { ComplaintCategoryRecord } from './category';
+import { ComplaintAttachmentRecord } from './attachment';
 
 export type ComplaintStatus = 'new' | 'open' | 'pending' | 'resolved' | 'closed';
 export type ComplaintPriority = 'low' | 'normal' | 'high' | 'urgent';
@@ -14,15 +15,6 @@ export interface ComplaintSubmissionRequest {
   categoryId?: string;
 }
 
-export interface ComplaintAttachmentRecord {
-  id: string;
-  complaint_id: string;
-  file_name: string;
-  file_path: string;
-  file_type: string | null;
-  file_size: number | null;
-  created_at: string;
-}
 
 export interface ComplaintSubmissionResponse {
   success: boolean;
@@ -94,6 +86,7 @@ export * from './routing';
 export * from './sla';
 export * from './escalation';
 export * from './feedback';
+export * from './attachment';
 
 export interface ComplaintMessageRecord {
   id: string;
@@ -104,6 +97,7 @@ export interface ComplaintMessageRecord {
   message: string;
   created_at: string;
   updated_at: string;
+  attachments?: ComplaintAttachmentRecord[];
 }
 
 export interface SendMessagePayload {
@@ -113,8 +107,12 @@ export interface SendMessagePayload {
 export interface CustomerAttachmentView {
   id: string;
   file_name: string;
+  original_filename?: string;
   file_type: string | null;
+  mime_type?: string | null;
   file_size: number | null;
+  attachment_type?: string;
+  message_id?: string | null;
   created_at: string;
 }
 
@@ -124,6 +122,7 @@ export interface CustomerMessageView {
   sender_name: string;
   message: string;
   created_at: string;
+  attachments?: CustomerAttachmentView[];
 }
 
 export interface CustomerComplaintView {

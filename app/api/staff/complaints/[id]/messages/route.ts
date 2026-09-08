@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { sendStaffResponseEmail } from '@/services/email';
+import { validateAttachment, MAX_ATTACHMENTS_PER_ACTION } from '@/lib/storage';
+import { uploadAttachment } from '@/lib/attachments';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -38,7 +40,31 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    return NextResponse.json({ success: true, messages: messages || [] });
+    // 3. Fetch attachments linked to messages
+    const { data: attachments } = await supabase
+      .from('complaint_attachments')
+      .select('*')
+      .eq('complaint_id', id)
+      .not('message_id', 'is', null);
+
+    const attachmentsByMessageId: Record<string, any[]> = {};
+    if (attachments) {
+      for (const att of attachments) {
+        if (att.message_id) {
+          if (!attachmentsByMessageId[att.message_id]) {
+            attachmentsByMessageId[att.message_id] = [];
+          }
+          attachmentsByMessageId[att.message_id].push(att);
+        }
+      }
+    }
+
+    const messagesWithAttachments = (messages || []).map((msg) => ({
+      ...msg,
+      attachments: attachmentsByMessageId[msg.id] || [],
+    }));
+
+    return NextResponse.json({ success: true, messages: messagesWithAttachments });
   } catch (err) {
     console.error('[API Messages GET Exception]:', err);
     return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
@@ -59,9 +85,35 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    // 2. Parse and validate body
-    const body = await request.json().catch(() => ({}));
-    const rawMessage = body.message;
+    // 2. Fetch user profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('id, full_name, role')
+      .eq('id', user.id)
+      .single();
+
+    // 3. Parse and validate body
+    const contentType = request.headers.get('content-type') || '';
+    let rawMessage = '';
+    const attachmentFiles: File[] = [];
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      rawMessage = (formData.get('message') as string) || '';
+
+      const entries = [
+        ...formData.getAll('attachments'),
+        ...formData.getAll('attachment'),
+      ];
+      for (const entry of entries) {
+        if (entry instanceof File && entry.size > 0 && entry.name) {
+          attachmentFiles.push(entry);
+        }
+      }
+    } else {
+      const body = await request.json().catch(() => ({}));
+      rawMessage = body.message || '';
+    }
 
     if (!rawMessage || typeof rawMessage !== 'string' || !rawMessage.trim()) {
       return NextResponse.json(
@@ -72,7 +124,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const trimmedMessage = rawMessage.trim();
 
-    // 3. Verify complaint exists and fetch recipient info & SLA targets
+    // Validate attachment limits
+    if (attachmentFiles.length > MAX_ATTACHMENTS_PER_ACTION) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: `You can attach at most ${MAX_ATTACHMENTS_PER_ACTION} files per response.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    for (const file of attachmentFiles) {
+      const validation = validateAttachment({
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+      if (!validation.valid) {
+        return NextResponse.json(
+          { success: false, message: `"${file.name}": ${validation.error}` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 4. Verify complaint exists and fetch recipient info & SLA targets
     const { data: complaint, error: complaintErr } = await supabase
       .from('complaints')
       .select('id, status, email, full_name, reference_number, tracking_token, first_responded_at, first_response_due_at, first_response_sla_breached')
@@ -86,9 +163,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 4. Insert message
-    // Note: The database trigger trigger_staff_first_response_status will automatically
-    // transition 'new' complaints to 'open' when sender_type is 'staff'.
+    // 5. Insert message
     const { data: insertedMessage, error: insertErr } = await supabase
       .from('complaint_messages')
       .insert({
@@ -111,66 +186,93 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    // 4b. SLA Tracking: Record First Response timestamp if not previously set
+    // 6. Upload attachments linked to this staff response (customer_visible)
+    const uploadedAttachments = [];
+    if (attachmentFiles.length > 0) {
+      for (const file of attachmentFiles) {
+        const arrayBuffer = await file.arrayBuffer();
+        const fileBuffer = Buffer.from(arrayBuffer);
+
+        const upRes = await uploadAttachment({
+          complaintId,
+          fileBuffer,
+          fileName: file.name,
+          fileSize: file.size,
+          mimeType: file.type || 'application/octet-stream',
+          visibility: 'customer_visible',
+          messageId: insertedMessage.id,
+          uploadedByProfileId: user.id,
+          actorType: 'staff',
+          actorName: profile?.full_name || 'Staff Member',
+        });
+
+        if (upRes.success && upRes.attachment) {
+          uploadedAttachments.push(upRes.attachment);
+        }
+      }
+    }
+
+    // 7. SLA Tracking: Record First Response timestamp if not previously set
     try {
       if (!complaint.first_responded_at) {
-        const now = new Date();
-        const nowIso = now.toISOString();
-        const isBreached = complaint.first_response_due_at
-          ? now > new Date(complaint.first_response_due_at)
-          : false;
+        const nowIso = new Date().toISOString();
+        const dueTime = complaint.first_response_due_at ? new Date(complaint.first_response_due_at).getTime() : null;
+        const isBreached = Boolean(dueTime && Date.now() > dueTime);
 
         await supabase
           .from('complaints')
           .update({
             first_responded_at: nowIso,
             first_response_sla_breached: isBreached,
-            updated_at: nowIso,
           })
           .eq('id', complaintId);
 
-        if (isBreached && !complaint.first_response_sla_breached) {
+        if (isBreached) {
           await supabase.from('complaint_activity').insert({
             complaint_id: complaintId,
             actor_type: 'system',
             activity_type: 'first_response_sla_breached',
             metadata: {
-              reference_number: complaint.reference_number,
-              first_response_due_at: complaint.first_response_due_at,
+              due_at: complaint.first_response_due_at,
               responded_at: nowIso,
             },
           });
         }
       }
     } catch (slaErr) {
-      console.error('[API Messages POST SLA Tracking Warning]:', slaErr);
-      // Non-fatal to customer communication
+      console.warn('[Staff Message SLA Warning]:', slaErr);
     }
 
-    // 5. Trigger Staff Response Notification Email (non-blocking)
-    if (complaint.email && complaint.tracking_token) {
-      sendStaffResponseEmail({
-        to: complaint.email,
-        referenceNumber: complaint.reference_number,
-        trackingToken: complaint.tracking_token,
-        customerName: complaint.full_name,
-      }).catch((emailErr) => {
-        console.error('[API Messages POST Email Background Error]:', emailErr);
-      });
-    }
-
-    // 6. Fetch current status of complaint to inform caller of any transition
-    const { data: refreshedComplaint } = await supabase
+    // 8. Refetch updated complaint status
+    const { data: updatedComplaint } = await supabase
       .from('complaints')
       .select('status')
       .eq('id', complaintId)
       .single();
 
+    const currentStatus = updatedComplaint?.status || complaint.status;
+
+    // 9. Send email notification to customer
+    if (complaint.email && complaint.tracking_token) {
+      sendStaffResponseEmail({
+        to: complaint.email,
+        customerName: complaint.full_name,
+        referenceNumber: complaint.reference_number,
+        trackingToken: complaint.tracking_token,
+        hasAttachments: uploadedAttachments.length > 0,
+      }).catch((emailErr) => {
+        console.error('[API SendStaffResponseEmail Error]:', emailErr);
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      message: insertedMessage,
-      complaintStatus: refreshedComplaint?.status || complaint.status,
-      statusTransitioned: complaint.status === 'new' && refreshedComplaint?.status === 'open',
+      message: {
+        ...insertedMessage,
+        attachments: uploadedAttachments,
+      },
+      complaintStatus: currentStatus,
+      attachments: uploadedAttachments,
     });
   } catch (err) {
     console.error('[API Messages POST Exception]:', err);

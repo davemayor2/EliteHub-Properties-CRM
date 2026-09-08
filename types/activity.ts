@@ -10,7 +10,10 @@ export type ComplaintActivityType =
   | 'unassigned'
   | 'staff_message_sent'
   | 'customer_message_sent'
-  | 'internal_note_added';
+  | 'internal_note_added'
+  | 'attachment_uploaded'
+  | 'internal_attachment_uploaded'
+  | 'attachment_deleted';
 
 export interface ActivityMetadata {
   previous_status?: string;

@@ -21,6 +21,9 @@ import {
   Star,
   ThumbsDown,
   Flame,
+  Paperclip,
+  Lock,
+  Trash2,
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -294,6 +297,49 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         );
       }
 
+      case 'attachment_uploaded': {
+        const fileName = String(activity.metadata?.file_name || 'Supporting file');
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-blue-700 font-medium">
+              Supporting Attachment Uploaded
+            </span>
+            <span className="text-xs text-slate-500 block truncate" title={fileName}>
+              File: {fileName}
+            </span>
+          </div>
+        );
+      }
+
+      case 'internal_attachment_uploaded': {
+        const fileName = String(activity.metadata?.file_name || 'Internal file');
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-amber-700 font-medium flex items-center gap-1">
+              <Lock size={12} />
+              <span>Internal Evidence Document Added</span>
+            </span>
+            <span className="text-xs text-amber-800/80 block truncate" title={fileName}>
+              Confidential: {fileName}
+            </span>
+          </div>
+        );
+      }
+
+      case 'attachment_deleted': {
+        const fileName = String(activity.metadata?.file_name || 'Attachment');
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-slate-700 font-medium">
+              Attachment Removed
+            </span>
+            <span className="text-xs text-slate-500 block truncate" title={fileName}>
+              Removed file: {fileName}
+            </span>
+          </div>
+        );
+      }
+
       default:
         return (
           <div className="activity-event-detail">
@@ -347,6 +393,12 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         return { icon: <Star size={14} />, className: 'icon-feedback-sub' };
       case 'low_satisfaction_received':
         return { icon: <ThumbsDown size={14} />, className: 'icon-feedback-low' };
+      case 'attachment_uploaded':
+        return { icon: <Paperclip size={14} />, className: 'icon-attachment' };
+      case 'internal_attachment_uploaded':
+        return { icon: <Lock size={14} />, className: 'icon-internal-att' };
+      case 'attachment_deleted':
+        return { icon: <Trash2 size={14} />, className: 'icon-delete-att' };
       default:
         return { icon: <Clock size={14} />, className: 'icon-default' };
     }
