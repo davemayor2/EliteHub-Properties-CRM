@@ -4,10 +4,8 @@ import Link from 'next/link';
 import { requireStaff } from '@/lib/auth/requireStaff';
 import DashboardHeader from '@/components/staff/DashboardHeader';
 import DateRangeFilter from '@/components/staff/analytics/DateRangeFilter';
-import {
-  DateRangeOption,
-  getDateRangeBounds,
-} from '@/lib/analytics/complaints';
+import { DateRangeOption } from '@/lib/analytics/types';
+import { getDateRangeBounds } from '@/lib/analytics/complaints';
 import {
   getFeedbackAnalytics,
   getRecentFeedbackComments,

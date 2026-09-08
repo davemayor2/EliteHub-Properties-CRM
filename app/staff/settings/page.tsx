@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import DashboardHeader from '@/components/staff/DashboardHeader';
 import Link from 'next/link';
-import { User, Mail, Shield, Key, Bell, Lock, Building2, Tags, ArrowRight } from 'lucide-react';
+import { User, Mail, Shield, Key, Bell, Lock, Building2, Tags, Clock, ArrowRight } from 'lucide-react';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {

@@ -78,12 +78,7 @@ export default function ComplaintDetailWorkspace({
     setComplaint((prev) => ({
       ...prev,
       category_id: newCat?.id || null,
-      category: newCat ? {
-        id: newCat.id,
-        name: newCat.name,
-        description: newCat.description,
-        is_active: newCat.is_active,
-      } : undefined,
+      category: newCat,
       updated_at: new Date().toISOString(),
     }));
   };
@@ -92,12 +87,7 @@ export default function ComplaintDetailWorkspace({
     setComplaint((prev) => ({
       ...prev,
       department_id: newDept?.id || null,
-      department: newDept ? {
-        id: newDept.id,
-        name: newDept.name,
-        is_active: newDept.is_active,
-        auto_assign_enabled: newDept.auto_assign_enabled,
-      } : undefined,
+      department: newDept,
       updated_at: new Date().toISOString(),
     }));
   };

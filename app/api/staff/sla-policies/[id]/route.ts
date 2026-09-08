@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/auth/requireAdmin';
 import { ComplaintPriority } from '@/types/complaint';
 
 interface RouteParams {
@@ -44,13 +43,29 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const authCheck = await requireAdmin();
-    if (!authCheck.authorized) {
-      return NextResponse.json({ success: false, message: authCheck.message }, { status: authCheck.status });
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin' || (profile.is_active !== undefined && !profile.is_active)) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: Admin access required.' },
+        { status: 403 }
+      );
     }
 
     const { id } = await params;
-    const supabase = await createClient();
     const body = await request.json().catch(() => ({}));
 
     const {
@@ -151,13 +166,29 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const authCheck = await requireAdmin();
-    if (!authCheck.authorized) {
-      return NextResponse.json({ success: false, message: authCheck.message }, { status: authCheck.status });
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, is_active')
+      .eq('id', user.id)
+      .single();
+
+    if (!profile || profile.role !== 'admin' || (profile.is_active !== undefined && !profile.is_active)) {
+      return NextResponse.json(
+        { success: false, message: 'Forbidden: Admin access required.' },
+        { status: 403 }
+      );
     }
 
     const { id } = await params;
-    const supabase = await createClient();
 
     // Soft deactivate instead of permanent destructive delete to preserve historical records
     const { error: updateErr } = await supabase

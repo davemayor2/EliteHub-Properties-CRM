@@ -21,7 +21,8 @@ export default function NeedsAttentionWidget({ complaints }: NeedsAttentionWidge
       return (
         complaint.is_escalated ||
         sla.status === 'overdue' ||
-        sla.status === 'breached' ||
+        sla.status === 'first_response_breached' ||
+        sla.status === 'resolution_breached' ||
         sla.status === 'approaching_deadline'
       );
     })
@@ -29,7 +30,11 @@ export default function NeedsAttentionWidget({ complaints }: NeedsAttentionWidge
       // Escalated first, then overdue, then approaching
       const rank = (item: typeof a) => {
         if (item.complaint.is_escalated) return 1;
-        if (item.sla.status === 'overdue' || item.sla.status === 'breached') return 2;
+        if (
+          item.sla.status === 'overdue' ||
+          item.sla.status === 'first_response_breached' ||
+          item.sla.status === 'resolution_breached'
+        ) return 2;
         if (item.sla.status === 'approaching_deadline') return 3;
         return 4;
       };
@@ -124,13 +129,13 @@ export default function NeedsAttentionWidget({ complaints }: NeedsAttentionWidge
                   <PriorityBadge priority={complaint.priority} />
                 </td>
                 <td>
-                  <SlaStatusBadge evaluation={sla} />
+                  <SlaStatusBadge complaint={complaint} />
                 </td>
                 <td>
                   <span className="text-xs text-slate-600">
                     {complaint.is_escalated
                       ? '⚡ Escalated to Admin'
-                      : sla.targetMessage || 'Requires immediate review'}
+                      : sla.timeRemainingFormatted || 'Requires immediate review'}
                   </span>
                 </td>
                 <td className="text-right">

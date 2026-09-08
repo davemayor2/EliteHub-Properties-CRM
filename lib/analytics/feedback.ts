@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { DateRangeOption, getDateRangeBounds } from './complaints';
+import { DateRangeOption } from './types';
+import { getDateRangeBounds } from './complaints';
 import {
   FeedbackAnalyticsMetrics,
   RatingDistributionItem,

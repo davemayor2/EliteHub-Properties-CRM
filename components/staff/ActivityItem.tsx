@@ -20,6 +20,7 @@ import {
   AlertCircle,
   Star,
   ThumbsDown,
+  Flame,
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -244,12 +245,12 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
       }
 
       case 'escalation_notification_sent': {
-        const count = activity.metadata?.admin_count || 1;
+        const count = activity.metadata?.admin_count !== undefined ? String(activity.metadata.admin_count) : '1';
         return (
           <div className="activity-event-detail">
             <span className="activity-headline text-indigo-700 font-medium">Escalation Alert Dispatched</span>
             <span className="text-xs text-slate-500">
-              Notification emails sent to {count} active CRM administrator{Number(count) === 1 ? '' : 's'}
+              Notification emails sent to {count} active CRM administrator{count === '1' ? '' : 's'}
             </span>
           </div>
         );
@@ -266,7 +267,7 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         );
 
       case 'feedback_submitted': {
-        const rating = activity.metadata?.rating || '?';
+        const rating = activity.metadata?.rating !== undefined ? String(activity.metadata.rating) : '?';
         return (
           <div className="activity-event-detail">
             <span className="activity-headline text-emerald-700 font-semibold">
@@ -280,7 +281,7 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
       }
 
       case 'low_satisfaction_received': {
-        const rating = activity.metadata?.rating || 'Low';
+        const rating = activity.metadata?.rating !== undefined ? String(activity.metadata.rating) : 'Low';
         return (
           <div className="activity-event-detail">
             <span className="activity-headline text-rose-700 font-bold">
