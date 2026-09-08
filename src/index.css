@@ -7127,3 +7127,258 @@ body {
   color: #145E3D;
   transform: translateX(3px);
 }
+
+/* ==========================================================================
+   PHASE 13: SLA MANAGEMENT, ESCALATIONS & DEADLINES STYLES
+   ========================================================================== */
+
+/* SLA Status Badges */
+.badge-sla {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.badge-sla-ontrack {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badge-sla-warning {
+  background-color: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  animation: pulseWarning 2.5s infinite ease-in-out;
+}
+
+.badge-sla-overdue {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  animation: pulseOverdue 2s infinite ease-in-out;
+}
+
+.badge-sla-breach {
+  background-color: #450a0a;
+  color: #fecaca;
+  border: 1px solid #7f1d1d;
+}
+
+.badge-sla-met {
+  background-color: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.badge-sla-none {
+  background-color: #f8fafc;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+}
+
+.badge-sla-escalated {
+  background-color: #7f1d1d;
+  color: #fef2f2;
+  border: 1px solid #991b1b;
+  box-shadow: 0 0 8px rgba(185, 28, 28, 0.3);
+}
+
+@keyframes pulseWarning {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; transform: scale(0.99); }
+}
+
+@keyframes pulseOverdue {
+  0%, 100% { box-shadow: 0 0 0 rgba(220, 38, 38, 0); }
+  50% { box-shadow: 0 0 6px rgba(220, 38, 38, 0.4); }
+}
+
+/* SLA Summary Card in Complaint Workspace */
+.sla-summary-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.sla-escalated-banner {
+  background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%);
+  color: #ffffff;
+  padding: 14px 18px;
+  border-bottom: 1px solid #b91c1c;
+}
+
+.sla-escalated-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.sla-escalated-banner-reason {
+  margin-top: 6px;
+  font-size: 12px;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 6px 10px;
+  border-radius: 6px;
+  line-height: 1.4;
+}
+
+.sla-targets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px;
+}
+
+.sla-target-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed #f1f5f9;
+}
+
+.sla-target-row:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.sla-target-label-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+
+.sla-target-pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.sla-target-pill.met {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+
+.sla-target-pill.breached {
+  background-color: #fef2f2;
+  color: #991b1b;
+}
+
+.sla-target-pill.approaching {
+  background-color: #fffbeb;
+  color: #92400e;
+}
+
+.sla-target-pill.ontrack {
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.sla-escalate-action-strip {
+  padding: 12px 18px;
+  background-color: #fafbfc;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-escalate-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #b91c1c;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-escalate-trigger:hover {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+/* SLA Status Toggle in Admin Policies Table */
+.btn-status-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.btn-status-toggle.is-active {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.btn-status-toggle.is-active:hover {
+  background-color: #d1fae5;
+}
+
+.btn-status-toggle.is-inactive {
+  background-color: #f1f5f9;
+  color: #64748b;
+  border-color: #cbd5e1;
+}
+
+.btn-status-toggle.is-inactive:hover {
+  background-color: #e2e8f0;
+  color: #334155;
+}
+
+/* Activity Timeline Icon Classes for SLA */
+.timeline-node.icon-sla-warn {
+  background-color: #fffbeb;
+  color: #d97706;
+  border-color: #fde68a;
+}
+
+.timeline-node.icon-sla-breach {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.timeline-node.icon-escalated {
+  background-color: #7f1d1d;
+  color: #ffffff;
+  border-color: #991b1b;
+}
+
+.timeline-node.icon-escalation-alert {
+  background-color: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+}

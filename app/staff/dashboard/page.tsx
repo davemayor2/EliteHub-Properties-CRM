@@ -12,6 +12,8 @@ import StaffWorkloadCard from '@/components/staff/analytics/StaffWorkloadCard';
 import UnassignedAlertBanner from '@/components/staff/analytics/UnassignedAlertBanner';
 import RecentComplaintsWidget from '@/components/staff/analytics/RecentComplaintsWidget';
 import RecentActivityWidget from '@/components/staff/analytics/RecentActivityWidget';
+import SlaPerformanceCard from '@/components/staff/analytics/SlaPerformanceCard';
+import NeedsAttentionWidget from '@/components/staff/analytics/NeedsAttentionWidget';
 import {
   DateRangeOption,
   getDateRangeBounds,
@@ -20,6 +22,7 @@ import {
   getStatusDistribution,
   getPriorityDistribution,
   getResolutionPerformance,
+  getSlaPerformanceMetrics,
   getStaffWorkload,
   getMyWorkload,
   getRecentActivity,
@@ -59,9 +62,11 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
     statusDist,
     priorityDist,
     resolutionPerf,
+    slaPerf,
     teamWorkload,
     myWorkload,
     recentComplaintsRes,
+    activeComplaintsRes,
     recentActivity,
   ] = await Promise.all([
     getDashboardOverviewMetrics(supabase, range),
@@ -69,20 +74,35 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
     getStatusDistribution(supabase, range),
     getPriorityDistribution(supabase, range),
     getResolutionPerformance(supabase, range),
+    getSlaPerformanceMetrics(supabase, range),
     isAdmin ? getStaffWorkload(supabase) : Promise.resolve([]),
     !isAdmin ? getMyWorkload(supabase, profile.id) : Promise.resolve(undefined),
     supabase
       .from('complaints')
       .select(`
         *,
-        assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role)
+        assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
+        department:departments(id, name, code),
+        sla_policy:sla_policies(id, name, first_response_hours, resolution_hours)
       `)
       .order('created_at', { ascending: false })
       .limit(8),
+    supabase
+      .from('complaints')
+      .select(`
+        *,
+        assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
+        department:departments(id, name, code),
+        sla_policy:sla_policies(id, name, first_response_hours, resolution_hours)
+      `)
+      .not('status', 'in', '("resolved","closed")')
+      .order('created_at', { ascending: false })
+      .limit(50),
     getRecentActivity(supabase, 8),
   ]);
 
   const recentComplaints = (recentComplaintsRes.data || []) as ComplaintRecord[];
+  const activeComplaints = (activeComplaintsRes.data || []) as ComplaintRecord[];
 
   return (
     <div className="dashboard-page-container command-center-container">
@@ -103,11 +123,26 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
         <UnassignedAlertBanner unassignedCount={overviewMetrics.unassigned} />
       )}
 
+      {/* Needs Attention / SLA Queue (if any active cases are overdue or escalated) */}
+      <NeedsAttentionWidget complaints={activeComplaints} />
+
       {/* ROW 1 & ROW 2: Overview Metric Cards */}
       <OverviewMetricGrid
         metrics={overviewMetrics}
         selectedRangeLabel={rangeLabel}
       />
+
+      {/* SLA Compliance & Resolution Performance Cards */}
+      <div className="command-center-dual-grid">
+        <SlaPerformanceCard
+          metrics={slaPerf}
+          selectedRangeLabel={rangeLabel}
+        />
+        <ResolutionPerformanceCard
+          metrics={resolutionPerf}
+          selectedRangeLabel={rangeLabel}
+        />
+      </div>
 
       {/* ROW 3: Complaint Volume Trend Chart */}
       <ComplaintVolumeChart
@@ -127,17 +162,13 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
         />
       </div>
 
-      {/* ROW 5: Staff Workload & Resolution Performance */}
-      <div className="command-center-dual-grid">
+      {/* ROW 5: Staff Workload */}
+      <div className="w-full">
         <StaffWorkloadCard
           isAdmin={isAdmin}
           teamWorkload={teamWorkload}
           myWorkload={myWorkload}
           currentUserId={profile.id}
-        />
-        <ResolutionPerformanceCard
-          metrics={resolutionPerf}
-          selectedRangeLabel={rangeLabel}
         />
       </div>
 
@@ -149,3 +180,4 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
     </div>
   );
 }
+

@@ -11,6 +11,7 @@ import {
   Users,
   Building2,
   Tags,
+  Clock,
   Settings,
   Shield,
   X,
@@ -65,6 +66,12 @@ export default function Sidebar({
             label: 'Categories',
             href: '/staff/settings/categories',
             icon: Tags,
+            badge: null,
+          },
+          {
+            label: 'SLA Policies',
+            href: '/staff/settings/sla',
+            icon: Clock,
             badge: null,
           },
           {

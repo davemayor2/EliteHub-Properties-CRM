@@ -26,6 +26,7 @@ import { ComplaintCategoryRecord } from '@/types/category';
 import { DepartmentRecord } from '@/types/department';
 import CategorySelect from './CategorySelect';
 import DepartmentSelect from './DepartmentSelect';
+import SlaSummary from './sla/SlaSummary';
 import { Sliders } from 'lucide-react';
 
 interface ComplaintDetailWorkspaceProps {
@@ -96,6 +97,15 @@ export default function ComplaintDetailWorkspace({
         is_active: newDept.is_active,
         auto_assign_enabled: newDept.auto_assign_enabled,
       } : undefined,
+      updated_at: new Date().toISOString(),
+    }));
+  };
+
+  const handleEscalationSuccess = () => {
+    setComplaint((prev) => ({
+      ...prev,
+      is_escalated: true,
+      escalated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }));
   };
@@ -226,6 +236,12 @@ export default function ComplaintDetailWorkspace({
               />
             </div>
           </div>
+
+          {/* SLA & Escalation Management Hub */}
+          <SlaSummary
+            complaint={complaint}
+            onEscalationSuccess={handleEscalationSuccess}
+          />
 
           {/* System Record & Metadata Card */}
           <ComplaintMetadata

@@ -3,6 +3,7 @@ import { renderComplaintReceivedEmail } from '@/emails/ComplaintReceivedEmail';
 import { renderStaffResponseEmail } from '@/emails/StaffResponseEmail';
 import { renderStatusUpdateEmail } from '@/emails/StatusUpdateEmail';
 import { renderNewComplaintAlertEmail } from '@/emails/NewComplaintAlertEmail';
+import { renderEscalationAlertEmail } from '@/emails/EscalationAlertEmail';
 import { ComplaintStatus } from '@/types/complaint';
 
 export interface EmailSendResult {
@@ -244,6 +245,81 @@ export async function sendNewComplaintAlertToCare(params: {
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : 'Unknown email sending failure';
     console.error(`[Email Service Exception - Care Alert]:`, errMsg);
+    return { success: false, error: errMsg };
+  }
+}
+
+/**
+ * 5. Sends complaint escalation alert email to administrators.
+ */
+export async function sendEscalationAlertEmail(params: {
+  recipients: string[];
+  complaintId: string;
+  referenceNumber: string;
+  customerName: string;
+  complaintSubject: string;
+  priority: string;
+  departmentName?: string | null;
+  slaStatus: string;
+  reason?: string | null;
+}): Promise<EmailSendResult> {
+  const {
+    recipients,
+    complaintId,
+    referenceNumber,
+    customerName,
+    complaintSubject,
+    priority,
+    departmentName,
+    slaStatus,
+    reason,
+  } = params;
+
+  const validRecipients = recipients.filter(isValidEmail);
+
+  if (validRecipients.length === 0) {
+    console.log(`[Email Service]: Skipped escalation alert (no valid admin recipients for ${referenceNumber}).`);
+    return { success: true, skipped: true };
+  }
+
+  if (!resend) {
+    console.warn('[Email Service]: RESEND_API_KEY not configured. Escalation alert skipped.');
+    return { success: false, error: 'Email service unconfigured' };
+  }
+
+  try {
+    const appUrl = getAppUrl();
+    const complaintUrl = `${appUrl}/staff/complaints/${complaintId}`;
+
+    const { subject, html, text } = renderEscalationAlertEmail({
+      referenceNumber,
+      customerName,
+      complaintSubject,
+      priority,
+      departmentName,
+      slaStatus,
+      reason,
+      complaintUrl,
+    });
+
+    const { data, error } = await resend.emails.send({
+      from: getEmailFrom(),
+      to: validRecipients,
+      subject,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error(`[Email Service Error - Escalation Alert]: Failed to send for ${referenceNumber}:`, error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email Service]: Escalation alert sent for ${referenceNumber} to ${validRecipients.length} admins (id: ${data?.id})`);
+    return { success: true, messageId: data?.id };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown email sending failure';
+    console.error(`[Email Service Exception - Escalation Alert]:`, errMsg);
     return { success: false, error: errMsg };
   }
 }

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch complaint with attachments and assigned staff profile
+    // Fetch complaint with attachments, assigned staff, category, department, and SLA policy
     let { data: complaint, error: complaintError } = await supabase
       .from('complaints')
       .select(`
@@ -31,6 +31,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
         category:complaint_categories(id, name, description, is_active),
         department:departments(id, name, is_active, auto_assign_enabled),
+        sla_policy:sla_policies(id, name, first_response_hours, resolution_hours, warning_percentage, auto_escalate),
         attachments:complaint_attachments(*)
       `)
       .eq('id', id)
@@ -84,7 +85,11 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Verify existing complaint
     const { data: existingComplaint, error: fetchErr } = await supabase
       .from('complaints')
-      .select('id, status, priority, assigned_to, email, reference_number, tracking_token, full_name')
+      .select(`
+        id, status, priority, assigned_to, email, reference_number, tracking_token, full_name,
+        resolved_at, closed_at, resolution_due_at, resolution_sla_breached,
+        first_response_due_at, first_responded_at, first_response_sla_breached
+      `)
       .eq('id', id)
       .single();
 
@@ -104,6 +109,38 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         );
       }
       updates.status = status;
+
+      // SLA Resolution Tracking
+      if (status === 'resolved') {
+        if (!existingComplaint.resolved_at) {
+          const now = new Date();
+          const nowIso = now.toISOString();
+          updates.resolved_at = nowIso;
+
+          if (existingComplaint.resolution_due_at) {
+            const isBreached = now > new Date(existingComplaint.resolution_due_at);
+            updates.resolution_sla_breached = isBreached;
+
+            if (isBreached && !existingComplaint.resolution_sla_breached) {
+              await supabase.from('complaint_activity').insert({
+                complaint_id: id,
+                actor_type: 'system',
+                activity_type: 'resolution_sla_breached',
+                metadata: {
+                  reference_number: existingComplaint.reference_number,
+                  resolution_due_at: existingComplaint.resolution_due_at,
+                  resolved_at: nowIso,
+                },
+              });
+            }
+          }
+        }
+      } else if (status === 'closed') {
+        if (!existingComplaint.closed_at) {
+          updates.closed_at = new Date().toISOString();
+        }
+      }
+      // Reopened complaints: Preserve historical resolved_at, first_responded_at, and breach flags
     }
 
     if (priority !== undefined) {
@@ -158,6 +195,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
         category:complaint_categories(id, name, description, is_active),
         department:departments(id, name, is_active, auto_assign_enabled),
+        sla_policy:sla_policies(id, name, first_response_hours, resolution_hours, warning_percentage, auto_escalate),
         attachments:complaint_attachments(*)
       `)
       .single();

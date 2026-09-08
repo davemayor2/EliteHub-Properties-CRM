@@ -34,6 +34,18 @@ function formatActivityDescription(
       return `Auto-assigned to ${metadata.assigned_to_name || metadata.staff_name || actorName}`;
     case 'routing_failed':
       return 'Automatic routing could not find available staff';
+    case 'sla_warning':
+      return `SLA warning: approaching ${metadata.target_type === 'first_response' ? 'first response' : 'resolution'} deadline`;
+    case 'first_response_sla_breached':
+      return 'First response SLA deadline breached';
+    case 'resolution_sla_breached':
+      return 'Resolution SLA deadline breached';
+    case 'complaint_auto_escalated':
+      return 'Complaint auto-escalated due to breached SLA';
+    case 'manual_escalation':
+      return `${actorName} manually escalated complaint: ${metadata.reason || 'Escalated to management'}`;
+    case 'escalation_notification_sent':
+      return `Escalation alerts dispatched to ${metadata.admin_count || 'management'} admins`;
     default:
       return `${activityType.replace(/_/g, ' ')}`;
   }

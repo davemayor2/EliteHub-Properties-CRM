@@ -72,10 +72,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     const trimmedMessage = rawMessage.trim();
 
-    // 3. Verify complaint exists and fetch recipient info
+    // 3. Verify complaint exists and fetch recipient info & SLA targets
     const { data: complaint, error: complaintErr } = await supabase
       .from('complaints')
-      .select('id, status, email, full_name, reference_number, tracking_token')
+      .select('id, status, email, full_name, reference_number, tracking_token, first_responded_at, first_response_due_at, first_response_sla_breached')
       .eq('id', complaintId)
       .single();
 
@@ -109,6 +109,42 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         { success: false, message: `Failed to send message: ${insertErr?.message || 'Database error'}` },
         { status: 500 }
       );
+    }
+
+    // 4b. SLA Tracking: Record First Response timestamp if not previously set
+    try {
+      if (!complaint.first_responded_at) {
+        const now = new Date();
+        const nowIso = now.toISOString();
+        const isBreached = complaint.first_response_due_at
+          ? now > new Date(complaint.first_response_due_at)
+          : false;
+
+        await supabase
+          .from('complaints')
+          .update({
+            first_responded_at: nowIso,
+            first_response_sla_breached: isBreached,
+            updated_at: nowIso,
+          })
+          .eq('id', complaintId);
+
+        if (isBreached && !complaint.first_response_sla_breached) {
+          await supabase.from('complaint_activity').insert({
+            complaint_id: complaintId,
+            actor_type: 'system',
+            activity_type: 'first_response_sla_breached',
+            metadata: {
+              reference_number: complaint.reference_number,
+              first_response_due_at: complaint.first_response_due_at,
+              responded_at: nowIso,
+            },
+          });
+        }
+      }
+    } catch (slaErr) {
+      console.error('[API Messages POST SLA Tracking Warning]:', slaErr);
+      // Non-fatal to customer communication
     }
 
     // 5. Trigger Staff Response Notification Email (non-blocking)

@@ -23,13 +23,14 @@ export default async function ComplaintsPage({ searchParams }: ComplaintsPagePro
   const initialStatus = typeof resolvedParams?.status === 'string' ? resolvedParams.status : undefined;
   const initialAssigned = typeof resolvedParams?.assigned === 'string' ? resolvedParams.assigned : undefined;
 
-  // 3. Fetch all complaints with category and department joins
+  // 3. Fetch all complaints with category, department, and SLA joins
   let { data: complaintsData, error: complaintsError } = await supabase
     .from('complaints')
     .select(`
       *,
       category:complaint_categories(id, name),
-      department:departments(id, name)
+      department:departments(id, name),
+      sla_policy:sla_policies(id, name, warning_percentage)
     `)
     .order('created_at', { ascending: false });
 

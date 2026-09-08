@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { ComplaintRecord, ComplaintStatus } from '@/types/complaint';
 import StatusBadge from '@/components/staff/StatusBadge';
 import PriorityBadge from '@/components/staff/PriorityBadge';
-import { Search, X, Inbox, Eye, Filter, RefreshCw, Building2, Tag } from 'lucide-react';
+import SlaStatusBadge from '@/components/staff/sla/SlaStatusBadge';
+import { checkSlaStatus } from '@/lib/sla/checkSlaStatus';
+import { Search, X, Inbox, Eye, Filter, RefreshCw, Building2, Tag, Clock } from 'lucide-react';
 
 interface ComplaintTableProps {
   initialComplaints: ComplaintRecord[];
@@ -25,6 +27,7 @@ export default function ComplaintTable({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedSla, setSelectedSla] = useState<string>('all');
 
   const defaultTab =
     initialAssigned === 'unassigned'
@@ -78,7 +81,21 @@ export default function ComplaintTable({
         return false;
       }
 
-      // 4. Text Search Query
+      // 4. SLA Status Filter
+      if (selectedSla !== 'all') {
+        const sla = checkSlaStatus(complaint);
+        if (selectedSla === 'escalated') {
+          if (!complaint.is_escalated) return false;
+        } else if (selectedSla === 'on_track') {
+          if (sla.status !== 'on_track') return false;
+        } else if (selectedSla === 'approaching') {
+          if (sla.status !== 'approaching_deadline') return false;
+        } else if (selectedSla === 'overdue') {
+          if (!['overdue', 'first_response_breached', 'resolution_breached', 'resolved_after_sla'].includes(sla.status)) return false;
+        }
+      }
+
+      // 5. Text Search Query
       if (!searchQuery.trim()) {
         return true;
       }
@@ -92,13 +109,14 @@ export default function ComplaintTable({
 
       return refMatch || nameMatch || emailMatch || phoneMatch || subjectMatch;
     });
-  }, [initialComplaints, selectedStatus, selectedDepartment, selectedCategory, searchQuery]);
+  }, [initialComplaints, selectedStatus, selectedDepartment, selectedCategory, selectedSla, searchQuery]);
 
   const handleClearFilters = () => {
     setSearchQuery('');
     setSelectedStatus('all');
     setSelectedDepartment('all');
     setSelectedCategory('all');
+    setSelectedSla('all');
   };
 
   const formatDate = (dateStr: string) => {
@@ -120,7 +138,8 @@ export default function ComplaintTable({
     searchQuery.trim() !== '' ||
     selectedStatus !== 'all' ||
     selectedDepartment !== 'all' ||
-    selectedCategory !== 'all';
+    selectedCategory !== 'all' ||
+    selectedSla !== 'all';
 
   return (
     <div className="complaints-table-wrapper">
@@ -172,6 +191,19 @@ export default function ComplaintTable({
               ))}
             </select>
           )}
+
+          <select
+            className="table-filter-select"
+            value={selectedSla}
+            onChange={(e) => setSelectedSla(e.target.value)}
+            aria-label="Filter by SLA status"
+          >
+            <option value="all">All SLA Status</option>
+            <option value="on_track">On Track</option>
+            <option value="approaching">Approaching Deadline</option>
+            <option value="overdue">Overdue / Breached</option>
+            <option value="escalated">Escalated</option>
+          </select>
 
           <div className="table-search-box">
             <Search size={16} className="search-box-icon" />
@@ -258,6 +290,7 @@ export default function ComplaintTable({
                   <th scope="col">Subject</th>
                   <th scope="col">Status</th>
                   <th scope="col">Priority</th>
+                  <th scope="col">SLA</th>
                   <th scope="col">Date Submitted</th>
                   <th scope="col" className="text-right">Action</th>
                 </tr>
@@ -313,6 +346,11 @@ export default function ComplaintTable({
                     {/* Priority Badge */}
                     <td className="cell-priority">
                       <PriorityBadge priority={complaint.priority} />
+                    </td>
+
+                    {/* SLA Status Badge */}
+                    <td className="cell-sla">
+                      <SlaStatusBadge complaint={complaint} />
                     </td>
 
                     {/* Created Date */}

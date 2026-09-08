@@ -31,14 +31,15 @@ export default async function ComplaintDetailPage({ params }: ComplaintDetailPag
   // 1. Verify active staff user (redirects to /staff/deactivated if inactive)
   const { user, profile, supabase } = await requireStaff(`/staff/complaints/${id}`);
 
-  // 2. Fetch complaint record with assigned staff profile, category, and department
+  // 2. Fetch complaint record with assigned staff profile, category, department, and SLA policy
   let { data: rawComplaint, error: complaintError } = await supabase
     .from('complaints')
     .select(`
       *,
       assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
       category:complaint_categories(id, name, description, is_active),
-      department:departments(id, name, is_active, auto_assign_enabled)
+      department:departments(id, name, is_active, auto_assign_enabled),
+      sla_policy:sla_policies(id, name, first_response_hours, resolution_hours, warning_percentage, auto_escalate)
     `)
     .eq('id', id)
     .single();

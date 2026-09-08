@@ -136,6 +136,17 @@ export default async function StaffSettingsPage() {
                 </div>
                 <ArrowRight size={16} className="quick-link-arrow" />
               </Link>
+
+              <Link href="/staff/settings/sla" className="settings-quick-link-card">
+                <div className="quick-link-icon-box" style={{ background: '#fef3c7', color: '#b45309' }}>
+                  <Clock size={22} />
+                </div>
+                <div className="quick-link-body">
+                  <h3 className="quick-link-title">SLA & Escalation Policies</h3>
+                  <p className="quick-link-desc">Configure response targets, resolution deadlines, and automatic escalation rules.</p>
+                </div>
+                <ArrowRight size={16} className="quick-link-arrow" />
+              </Link>
             </div>
           </div>
         )}

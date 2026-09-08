@@ -8,6 +8,7 @@ import {
 } from '@/lib/storage';
 import { sendComplaintReceivedEmail, sendNewComplaintAlertToCare } from '@/services/email';
 import { resolveComplaintRouting } from '@/lib/routing/assignComplaint';
+import { getSlaPolicy, calculateDeadlines } from '@/lib/sla';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_DIGITS_REGEX = /^\d{7,15}$/;
@@ -177,13 +178,28 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
     const complaintId = complaintData.id;
     const referenceNumber = complaintData.reference_number;
 
-    // Step 1b: Apply Category, Department, and Intelligent Auto-Assignment Routing
+    // Step 1b: Apply Category, Department, Intelligent Routing, and SLA Policy Deadlines
     try {
       const routing = await resolveComplaintRouting(supabaseServer, resolvedCategoryId);
       const updates: Record<string, any> = {};
       if (resolvedCategoryId) updates.category_id = resolvedCategoryId;
       if (routing.departmentId) updates.department_id = routing.departmentId;
       if (routing.assignedTo) updates.assigned_to = routing.assignedTo;
+
+      // Step 1c: Match SLA Policy based on Priority and Department
+      const priority = complaintData.priority || 'normal';
+      const slaPolicy = await getSlaPolicy(supabaseServer, {
+        priority,
+        departmentId: routing.departmentId,
+      });
+
+      if (slaPolicy) {
+        const createdAt = complaintData.created_at || new Date().toISOString();
+        const deadlines = calculateDeadlines(createdAt, slaPolicy);
+        updates.sla_policy_id = slaPolicy.id;
+        updates.first_response_due_at = deadlines.firstResponseDueAt;
+        updates.resolution_due_at = deadlines.resolutionDueAt;
+      }
 
       if (Object.keys(updates).length > 0) {
         await supabaseServer.from('complaints').update(updates).eq('id', complaintId);
@@ -204,8 +220,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
         });
       }
     } catch (routeErr) {
-      console.error('[API /api/complaints Routing Warning]:', routeErr);
-      // Non-fatal: routing failure never crashes complaint submission
+      console.error('[API /api/complaints Routing/SLA Warning]:', routeErr);
+      // Non-fatal: routing or SLA failure never crashes complaint submission
     }
     let uploadedFilePath: string | undefined;
     let attachmentId: string | undefined;

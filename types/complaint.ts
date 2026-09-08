@@ -66,6 +66,19 @@ export interface ComplaintRecord {
   category?: ComplaintCategoryRecord | null;
   department?: DepartmentRecord | null;
   attachments?: ComplaintAttachmentRecord[];
+
+  // SLA & Escalation fields
+  sla_policy_id?: string | null;
+  first_response_due_at?: string | null;
+  first_responded_at?: string | null;
+  resolution_due_at?: string | null;
+  is_escalated?: boolean;
+  escalated_at?: string | null;
+  first_response_sla_breached?: boolean;
+  resolution_sla_breached?: boolean;
+  sla_warning_sent?: boolean;
+  escalation_reason?: string | null;
+  sla_policy?: any;
 }
 
 export * from './note';
@@ -73,6 +86,8 @@ export * from './activity';
 export * from './department';
 export * from './category';
 export * from './routing';
+export * from './sla';
+export * from './escalation';
 
 export interface ComplaintMessageRecord {
   id: string;

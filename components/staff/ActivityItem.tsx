@@ -187,6 +187,72 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         );
       }
 
+      case 'sla_warning': {
+        const target = activity.metadata?.target_type === 'first_response' ? 'First Response' : 'Resolution';
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-amber-700 font-semibold">SLA Deadline Approaching</span>
+            <span className="text-xs text-amber-800">
+              {target} SLA is approaching its deadline
+            </span>
+          </div>
+        );
+      }
+
+      case 'first_response_sla_breached':
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-rose-700 font-semibold">First Response SLA Breached</span>
+            <span className="text-xs text-slate-500">
+              Initial customer reply deadline was exceeded
+            </span>
+          </div>
+        );
+
+      case 'resolution_sla_breached':
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-rose-700 font-semibold">Resolution SLA Breached</span>
+            <span className="text-xs text-slate-500">
+              Target resolution deadline was exceeded
+            </span>
+          </div>
+        );
+
+      case 'complaint_auto_escalated':
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-red-700 font-bold">Auto-Escalated to Management</span>
+            <span className="text-xs text-red-700">
+              Breached SLA triggered automatic administrative escalation
+            </span>
+          </div>
+        );
+
+      case 'manual_escalation': {
+        const reason = activity.metadata?.reason ? String(activity.metadata.reason) : 'Manual escalation requested';
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-red-700 font-bold">Manually Escalated</span>
+            <span className="text-xs text-slate-600 bg-red-50 p-1.5 rounded border border-red-100 mt-1 block">
+              &ldquo;{reason}&rdquo;
+            </span>
+          </div>
+        );
+      }
+
+      case 'escalation_notification_sent': {
+        const count = activity.metadata?.admin_count || 1;
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-indigo-700 font-medium">Escalation Alert Dispatched</span>
+            <span className="text-xs text-slate-500">
+              Notification emails sent to {count} active CRM administrator{Number(count) === 1 ? '' : 's'}
+            </span>
+          </div>
+        );
+      }
+
       default:
         return (
           <div className="activity-event-detail">
@@ -224,6 +290,16 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         return { icon: <Sparkles size={14} />, className: 'icon-auto-assign' };
       case 'routing_failed':
         return { icon: <AlertCircle size={14} />, className: 'icon-routing-warn' };
+      case 'sla_warning':
+        return { icon: <Clock size={14} />, className: 'icon-sla-warn' };
+      case 'first_response_sla_breached':
+      case 'resolution_sla_breached':
+        return { icon: <AlertTriangle size={14} />, className: 'icon-sla-breach' };
+      case 'complaint_auto_escalated':
+      case 'manual_escalation':
+        return { icon: <Flame size={14} />, className: 'icon-escalated' };
+      case 'escalation_notification_sent':
+        return { icon: <Shield size={14} />, className: 'icon-escalation-alert' };
       default:
         return { icon: <Clock size={14} />, className: 'icon-default' };
     }
