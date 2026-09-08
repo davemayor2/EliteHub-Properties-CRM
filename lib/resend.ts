@@ -34,6 +34,14 @@ export function getTrackingUrl(trackingToken: string): string {
 }
 
 /**
+ * Constructs a secure customer feedback survey URL.
+ */
+export function getFeedbackUrl(feedbackToken: string): string {
+  const baseUrl = getAppUrl();
+  return `${baseUrl}/feedback/${encodeURIComponent(feedbackToken)}`;
+}
+
+/**
  * Retrieves the internal care team inbox email address for new complaint notifications.
  * Defaults to 'care@elitehubproperties.com'.
  */

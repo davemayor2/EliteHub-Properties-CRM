@@ -79,6 +79,11 @@ export interface ComplaintRecord {
   sla_warning_sent?: boolean;
   escalation_reason?: string | null;
   sla_policy?: any;
+
+  // Feedback fields
+  feedback_requested_at?: string | null;
+  feedback_email_sent_at?: string | null;
+  feedback?: any;
 }
 
 export * from './note';
@@ -88,6 +93,7 @@ export * from './category';
 export * from './routing';
 export * from './sla';
 export * from './escalation';
+export * from './feedback';
 
 export interface ComplaintMessageRecord {
   id: string;

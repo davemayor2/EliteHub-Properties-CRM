@@ -18,6 +18,8 @@ import {
   Building2,
   Sparkles,
   AlertCircle,
+  Star,
+  ThumbsDown,
 } from 'lucide-react';
 
 interface ActivityItemProps {
@@ -253,6 +255,44 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         );
       }
 
+      case 'feedback_requested':
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-amber-700 font-medium">Satisfaction Survey Sent</span>
+            <span className="text-xs text-slate-500">
+              Invitation dispatched to customer upon complaint resolution
+            </span>
+          </div>
+        );
+
+      case 'feedback_submitted': {
+        const rating = activity.metadata?.rating || '?';
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-emerald-700 font-semibold">
+              Customer Feedback Received ({rating} / 5 Stars)
+            </span>
+            <span className="text-xs text-slate-500">
+              Customer rated their service resolution experience
+            </span>
+          </div>
+        );
+      }
+
+      case 'low_satisfaction_received': {
+        const rating = activity.metadata?.rating || 'Low';
+        return (
+          <div className="activity-event-detail">
+            <span className="activity-headline text-rose-700 font-bold">
+              Low Satisfaction Alert ({rating} / 5)
+            </span>
+            <span className="text-xs text-rose-600 bg-rose-50 p-1.5 rounded border border-rose-100 mt-1 block">
+              Customer reported poor resolution experience. Administrative review recommended.
+            </span>
+          </div>
+        );
+      }
+
       default:
         return (
           <div className="activity-event-detail">
@@ -300,6 +340,12 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
         return { icon: <Flame size={14} />, className: 'icon-escalated' };
       case 'escalation_notification_sent':
         return { icon: <Shield size={14} />, className: 'icon-escalation-alert' };
+      case 'feedback_requested':
+        return { icon: <Send size={14} />, className: 'icon-feedback-req' };
+      case 'feedback_submitted':
+        return { icon: <Star size={14} />, className: 'icon-feedback-sub' };
+      case 'low_satisfaction_received':
+        return { icon: <ThumbsDown size={14} />, className: 'icon-feedback-low' };
       default:
         return { icon: <Clock size={14} />, className: 'icon-default' };
     }

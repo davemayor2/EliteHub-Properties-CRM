@@ -27,6 +27,7 @@ import { DepartmentRecord } from '@/types/department';
 import CategorySelect from './CategorySelect';
 import DepartmentSelect from './DepartmentSelect';
 import SlaSummary from './sla/SlaSummary';
+import ComplaintFeedbackCard from './feedback/ComplaintFeedbackCard';
 import { Sliders } from 'lucide-react';
 
 interface ComplaintDetailWorkspaceProps {
@@ -241,6 +242,12 @@ export default function ComplaintDetailWorkspace({
           <SlaSummary
             complaint={complaint}
             onEscalationSuccess={handleEscalationSuccess}
+          />
+
+          {/* Customer Satisfaction Feedback Card */}
+          <ComplaintFeedbackCard
+            feedback={complaint.feedback}
+            status={complaint.status}
           />
 
           {/* System Record & Metadata Card */}

@@ -1,9 +1,10 @@
-import { resend, getEmailFrom, getTrackingUrl, getCareNotificationEmail, getAppUrl } from '@/lib/resend';
+import { resend, getEmailFrom, getTrackingUrl, getFeedbackUrl, getCareNotificationEmail, getAppUrl } from '@/lib/resend';
 import { renderComplaintReceivedEmail } from '@/emails/ComplaintReceivedEmail';
 import { renderStaffResponseEmail } from '@/emails/StaffResponseEmail';
 import { renderStatusUpdateEmail } from '@/emails/StatusUpdateEmail';
 import { renderNewComplaintAlertEmail } from '@/emails/NewComplaintAlertEmail';
 import { renderEscalationAlertEmail } from '@/emails/EscalationAlertEmail';
+import { renderFeedbackRequestEmail } from '@/emails/FeedbackRequestEmail';
 import { ComplaintStatus } from '@/types/complaint';
 
 export interface EmailSendResult {
@@ -323,4 +324,56 @@ export async function sendEscalationAlertEmail(params: {
     return { success: false, error: errMsg };
   }
 }
+
+/**
+ * 6. Sends a customer satisfaction feedback invitation email.
+ */
+export async function sendFeedbackRequestEmail(params: {
+  to?: string | null;
+  referenceNumber: string;
+  feedbackToken: string;
+  customerName?: string;
+}): Promise<EmailSendResult> {
+  const { to, referenceNumber, feedbackToken, customerName } = params;
+
+  if (!isValidEmail(to)) {
+    console.log(`[Email Service]: Skipped feedback email (no valid email provided for ${referenceNumber}).`);
+    return { success: true, skipped: true };
+  }
+
+  if (!resend) {
+    console.warn('[Email Service]: RESEND_API_KEY not configured. Feedback email skipped.');
+    return { success: false, error: 'Email service unconfigured' };
+  }
+
+  try {
+    const feedbackUrl = getFeedbackUrl(feedbackToken);
+    const { subject, html, text } = renderFeedbackRequestEmail({
+      referenceNumber,
+      feedbackUrl,
+      customerName,
+    });
+
+    const { data, error } = await resend.emails.send({
+      from: getEmailFrom(),
+      to: to.trim(),
+      subject,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error(`[Email Service Error - Feedback Request]: Failed to send for ${referenceNumber}:`, error);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Email Service]: Feedback invitation sent to ${to.trim()} for ${referenceNumber} (id: ${data?.id})`);
+    return { success: true, messageId: data?.id };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Unknown feedback email failure';
+    console.error(`[Email Service Exception - Feedback Request]:`, errMsg);
+    return { success: false, error: errMsg };
+  }
+}
+
 

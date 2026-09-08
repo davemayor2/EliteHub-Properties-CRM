@@ -14,6 +14,7 @@ import {
   Clock,
   Settings,
   Shield,
+  Star,
   X,
   ExternalLink,
 } from 'lucide-react';
@@ -54,6 +55,12 @@ export default function Sidebar({
             label: 'Team',
             href: '/staff/team',
             icon: Users,
+            badge: null,
+          },
+          {
+            label: 'Customer Feedback',
+            href: '/staff/analytics/feedback',
+            icon: Star,
             badge: null,
           },
           {

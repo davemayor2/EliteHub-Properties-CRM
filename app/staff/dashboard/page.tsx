@@ -14,6 +14,7 @@ import RecentComplaintsWidget from '@/components/staff/analytics/RecentComplaint
 import RecentActivityWidget from '@/components/staff/analytics/RecentActivityWidget';
 import SlaPerformanceCard from '@/components/staff/analytics/SlaPerformanceCard';
 import NeedsAttentionWidget from '@/components/staff/analytics/NeedsAttentionWidget';
+import CustomerSatisfactionCard from '@/components/staff/analytics/CustomerSatisfactionCard';
 import {
   DateRangeOption,
   getDateRangeBounds,
@@ -23,6 +24,7 @@ import {
   getPriorityDistribution,
   getResolutionPerformance,
   getSlaPerformanceMetrics,
+  getFeedbackAnalytics,
   getStaffWorkload,
   getMyWorkload,
   getRecentActivity,
@@ -63,6 +65,7 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
     priorityDist,
     resolutionPerf,
     slaPerf,
+    feedbackMetrics,
     teamWorkload,
     myWorkload,
     recentComplaintsRes,
@@ -75,6 +78,7 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
     getPriorityDistribution(supabase, range),
     getResolutionPerformance(supabase, range),
     getSlaPerformanceMetrics(supabase, range),
+    getFeedbackAnalytics(supabase, range),
     isAdmin ? getStaffWorkload(supabase) : Promise.resolve([]),
     !isAdmin ? getMyWorkload(supabase, profile.id) : Promise.resolve(undefined),
     supabase
@@ -132,12 +136,20 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
         selectedRangeLabel={rangeLabel}
       />
 
-      {/* SLA Compliance & Resolution Performance Cards */}
+      {/* Service Quality, SLA & Resolution Performance Cards */}
       <div className="command-center-dual-grid">
+        <CustomerSatisfactionCard
+          metrics={feedbackMetrics}
+          selectedRangeLabel={rangeLabel}
+        />
         <SlaPerformanceCard
           metrics={slaPerf}
           selectedRangeLabel={rangeLabel}
         />
+      </div>
+
+      {/* Resolution Turnaround Speed */}
+      <div className="w-full mb-6">
         <ResolutionPerformanceCard
           metrics={resolutionPerf}
           selectedRangeLabel={rangeLabel}

@@ -92,7 +92,17 @@ export default async function ComplaintDetailPage({ params }: ComplaintDetailPag
   // 8. Fetch audit activity timeline
   const activity = await getComplaintActivity(id);
 
-  const complaint: ComplaintRecord = rawComplaint as unknown as ComplaintRecord;
+  // 9. Fetch customer satisfaction feedback if available
+  const { data: rawFeedback } = await supabase
+    .from('customer_feedback')
+    .select('*')
+    .eq('complaint_id', id)
+    .maybeSingle();
+
+  const complaint: ComplaintRecord = {
+    ...(rawComplaint as unknown as ComplaintRecord),
+    feedback: rawFeedback || null,
+  };
   const attachments: ComplaintAttachmentRecord[] = (rawAttachments || []) as ComplaintAttachmentRecord[];
   const staffList: StaffProfileRecord[] = (rawStaffList || []) as StaffProfileRecord[];
   const messages: ComplaintMessageRecord[] = (rawMessages || []) as ComplaintMessageRecord[];

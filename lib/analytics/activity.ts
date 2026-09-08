@@ -46,6 +46,12 @@ function formatActivityDescription(
       return `${actorName} manually escalated complaint: ${metadata.reason || 'Escalated to management'}`;
     case 'escalation_notification_sent':
       return `Escalation alerts dispatched to ${metadata.admin_count || 'management'} admins`;
+    case 'feedback_requested':
+      return 'Customer satisfaction survey invitation sent';
+    case 'feedback_submitted':
+      return `Customer submitted satisfaction rating (${metadata.rating || 'rated'} / 5 stars)`;
+    case 'low_satisfaction_received':
+      return `Low satisfaction rating (${metadata.rating || 'low'} / 5) received from customer`;
     default:
       return `${activityType.replace(/_/g, ' ')}`;
   }

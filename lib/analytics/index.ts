@@ -4,3 +4,5 @@ export * from './trends';
 export * from './performance';
 export * from './workload';
 export * from './activity';
+export * from './feedback';
+

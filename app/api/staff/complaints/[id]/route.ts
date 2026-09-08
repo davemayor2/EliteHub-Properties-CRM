@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { ComplaintStatus, ComplaintPriority } from '@/types/complaint';
 import { sendStatusUpdateEmail } from '@/services/email';
+import { createFeedbackRequest } from '@/lib/feedback/createFeedbackRequest';
 
 const VALID_STATUSES: ComplaintStatus[] = ['new', 'open', 'pending', 'resolved', 'closed'];
 const VALID_PRIORITIES: ComplaintPriority[] = ['low', 'normal', 'high', 'urgent'];
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    // Fetch complaint with attachments, assigned staff, category, department, and SLA policy
+    // Fetch complaint with attachments, assigned staff, category, department, SLA policy, and feedback
     let { data: complaint, error: complaintError } = await supabase
       .from('complaints')
       .select(`
@@ -32,7 +33,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         category:complaint_categories(id, name, description, is_active),
         department:departments(id, name, is_active, auto_assign_enabled),
         sla_policy:sla_policies(id, name, first_response_hours, resolution_hours, warning_percentage, auto_escalate),
-        attachments:complaint_attachments(*)
+        attachments:complaint_attachments(*),
+        feedback:customer_feedback(*)
       `)
       .eq('id', id)
       .single();
@@ -241,6 +243,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         customerName: existingComplaint.full_name,
       }).catch((emailErr) => {
         console.error('[API /api/staff/complaints/[id] Email Background Error]:', emailErr);
+      });
+    }
+
+    // Trigger Customer Satisfaction Feedback Request on first resolution/closure
+    if (statusChanged && (status === 'resolved' || status === 'closed')) {
+      createFeedbackRequest(supabase, id, {
+        referenceNumber: existingComplaint.reference_number,
+        customerEmail: existingComplaint.email,
+        customerName: existingComplaint.full_name,
+      }).catch((fbErr) => {
+        console.error('[API /api/staff/complaints/[id] Feedback Request Background Error]:', fbErr);
       });
     }
 
