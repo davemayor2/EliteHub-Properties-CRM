@@ -3,6 +3,7 @@ import { submitCustomerMessage } from '@/lib/tracking';
 import { supabaseServer } from '@/lib/supabase/server';
 import { validateAttachment, MAX_ATTACHMENTS_PER_ACTION } from '@/lib/storage';
 import { uploadAttachment } from '@/lib/attachments';
+import { checkRateLimit, getClientIp, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit/rateLimiter';
 
 interface RouteParams {
   params: Promise<{ token: string }>;
@@ -10,6 +11,23 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    // Rate limit customer messages
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(`customer_msg:${clientIp}`, RATE_LIMIT_CONFIGS.customerMessages);
+    if (!rateLimit.allowed) {
+      const retryAfterSec = Math.ceil((rateLimit.resetTimeMs - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Too many messages sent. Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) before sending another.`,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(retryAfterSec) },
+        }
+      );
+    }
+
     const { token } = await params;
 
     if (!token || typeof token !== 'string' || !token.trim()) {

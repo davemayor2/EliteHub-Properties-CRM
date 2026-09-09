@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi } from '@/lib/auth/apiAuth';
 import { escalateComplaint } from '@/lib/sla/escalation';
 
 interface RouteParams {
@@ -8,17 +8,11 @@ interface RouteParams {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { user, supabase } = auth;
+
     const { id: complaintId } = await params;
-    const supabase = await createClient();
-
-    // 1. Verify authenticated staff user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
 
     const body = await request.json().catch(() => ({}));
     const reason = typeof body.reason === 'string' ? body.reason.trim() : null;

@@ -7,6 +7,7 @@ import StatusBadge from '@/components/staff/StatusBadge';
 import PriorityBadge from '@/components/staff/PriorityBadge';
 import SlaStatusBadge from '@/components/staff/sla/SlaStatusBadge';
 import { checkSlaStatus } from '@/lib/sla/checkSlaStatus';
+import { formatDateTime } from '@/lib/utils/date';
 import { Search, X, Inbox, Eye, Filter, RefreshCw, Building2, Tag, Clock } from 'lucide-react';
 
 interface ComplaintTableProps {
@@ -16,6 +17,8 @@ interface ComplaintTableProps {
   departments?: { id: string; name: string }[];
   categories?: { id: string; name: string }[];
 }
+
+const PAGE_SIZE = 25;
 
 export default function ComplaintTable({
   initialComplaints,
@@ -28,6 +31,7 @@ export default function ComplaintTable({
   const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedSla, setSelectedSla] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
 
   const defaultTab =
     initialAssigned === 'unassigned'
@@ -117,22 +121,15 @@ export default function ComplaintTable({
     setSelectedDepartment('all');
     setSelectedCategory('all');
     setSelectedSla('all');
+    setCurrentPage(1);
   };
 
-  const formatDate = (dateStr: string) => {
-    try {
-      const d = new Date(dateStr);
-      return new Intl.DateTimeFormat('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      }).format(d);
-    } catch {
-      return dateStr;
-    }
-  };
+  const totalPages = Math.max(1, Math.ceil(filteredComplaints.length / PAGE_SIZE));
+
+  const paginatedComplaints = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAGE_SIZE;
+    return filteredComplaints.slice(startIndex, startIndex + PAGE_SIZE);
+  }, [filteredComplaints, currentPage]);
 
   const isFilteringActive =
     searchQuery.trim() !== '' ||
@@ -154,7 +151,10 @@ export default function ComplaintTable({
               role="tab"
               aria-selected={selectedStatus === tab.id}
               className={`filter-pill-btn ${selectedStatus === tab.id ? 'is-active' : ''}`}
-              onClick={() => setSelectedStatus(tab.id)}
+              onClick={() => {
+                setSelectedStatus(tab.id);
+                setCurrentPage(1);
+              }}
             >
               <span>{tab.label}</span>
               <span className="pill-count">{tab.count}</span>
@@ -168,7 +168,10 @@ export default function ComplaintTable({
             <select
               className="table-filter-select"
               value={selectedDepartment}
-              onChange={(e) => setSelectedDepartment(e.target.value)}
+              onChange={(e) => {
+                setSelectedDepartment(e.target.value);
+                setCurrentPage(1);
+              }}
               aria-label="Filter by department"
             >
               <option value="all">All Departments</option>
@@ -182,7 +185,10 @@ export default function ComplaintTable({
             <select
               className="table-filter-select"
               value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
               aria-label="Filter by category"
             >
               <option value="all">All Categories</option>
@@ -195,7 +201,10 @@ export default function ComplaintTable({
           <select
             className="table-filter-select"
             value={selectedSla}
-            onChange={(e) => setSelectedSla(e.target.value)}
+            onChange={(e) => {
+              setSelectedSla(e.target.value);
+              setCurrentPage(1);
+            }}
             aria-label="Filter by SLA status"
           >
             <option value="all">All SLA Status</option>
@@ -212,7 +221,10 @@ export default function ComplaintTable({
               className="table-search-input"
               placeholder="Search reference, customer, phone, subject..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
               aria-label="Search complaints"
             />
             {searchQuery && (
@@ -296,7 +308,7 @@ export default function ComplaintTable({
                 </tr>
               </thead>
               <tbody>
-                {filteredComplaints.map((complaint) => (
+                {paginatedComplaints.map((complaint) => (
                   <tr key={complaint.id} className="data-table-row">
                     {/* Reference Number */}
                     <td className="cell-reference">
@@ -355,7 +367,7 @@ export default function ComplaintTable({
 
                     {/* Created Date */}
                     <td className="cell-date">
-                      <span className="date-text">{formatDate(complaint.created_at)}</span>
+                      <span className="date-text">{formatDateTime(complaint.created_at)}</span>
                     </td>
 
                     {/* Action */}
@@ -373,6 +385,71 @@ export default function ComplaintTable({
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {filteredComplaints.length > PAGE_SIZE && (
+              <div
+                className="table-pagination-controls"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1rem 1.25rem',
+                  borderTop: '1px solid #e2e8f0',
+                  backgroundColor: '#ffffff',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                }}
+              >
+                <span style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                  Showing <strong>{(currentPage - 1) * PAGE_SIZE + 1}</strong> to{' '}
+                  <strong>{Math.min(currentPage * PAGE_SIZE, filteredComplaints.length)}</strong> of{' '}
+                  <strong>{filteredComplaints.length}</strong> complaints
+                </span>
+
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.85rem',
+                      fontWeight: '500',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: currentPage === 1 ? '#f8fafc' : '#ffffff',
+                      color: currentPage === 1 ? '#94a3b8' : '#334155',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Previous
+                  </button>
+
+                  <span style={{ fontSize: '0.85rem', color: '#475569', padding: '0 0.5rem' }}>
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: '0.45rem 0.85rem',
+                      fontSize: '0.85rem',
+                      fontWeight: '500',
+                      borderRadius: '6px',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: currentPage === totalPages ? '#f8fafc' : '#ffffff',
+                      color: currentPage === totalPages ? '#94a3b8' : '#334155',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>

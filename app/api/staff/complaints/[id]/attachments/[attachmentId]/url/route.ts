@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi } from '@/lib/auth/apiAuth';
 import { getSignedAttachmentUrl } from '@/lib/attachments';
 
 interface AttachmentUrlParams {
@@ -11,17 +11,10 @@ interface AttachmentUrlParams {
 
 export async function GET(request: NextRequest, { params }: AttachmentUrlParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id: complaintId, attachmentId } = await params;
-    const supabase = await createClient();
-
-    // 1. Verify authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
 
     const isDownload = request.nextUrl.searchParams.get('download') === 'true';
 

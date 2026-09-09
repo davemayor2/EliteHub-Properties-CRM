@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { submitFeedback } from '@/lib/feedback/submitFeedback';
+import { checkRateLimit, getClientIp, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit/rateLimiter';
 
 interface RouteParams {
   params: Promise<{ token: string }>;
@@ -11,8 +12,17 @@ interface RouteParams {
  * Validates the feedback token and returns public details (reference number, submission status).
  * Excludes all sensitive internal CRM information.
  */
-export async function GET(_request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(`feedback_get:${clientIp}`, RATE_LIMIT_CONFIGS.trackingLookup);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Too many requests. Please slow down.' },
+        { status: 429 }
+      );
+    }
+
     const { token } = await params;
 
     if (!token || typeof token !== 'string' || !token.trim()) {
@@ -76,6 +86,22 @@ export async function GET(_request: NextRequest, { params }: RouteParams) {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(`feedback_post:${clientIp}`, RATE_LIMIT_CONFIGS.feedbackSubmission);
+    if (!rateLimit.allowed) {
+      const retryAfterSec = Math.ceil((rateLimit.resetTimeMs - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Too many submissions. Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) before trying again.`,
+        },
+        {
+          status: 429,
+          headers: { 'Retry-After': String(retryAfterSec) },
+        }
+      );
+    }
+
     const { token } = await params;
 
     if (!token || typeof token !== 'string' || !token.trim()) {

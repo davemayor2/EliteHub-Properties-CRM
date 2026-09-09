@@ -1,17 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi, authenticateAdminApi } from '@/lib/auth/apiAuth';
 import { getCategories, createCategory } from '@/lib/categories/categories';
 
 export async function GET() {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { supabase } = auth;
 
     const categories = await getCategories(supabase, { includeInactive: true });
     return NextResponse.json({ success: true, categories });
@@ -23,28 +18,9 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, is_active')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'admin' || !profile.is_active) {
-      return NextResponse.json(
-        { success: false, message: 'Forbidden: Admin access required.' },
-        { status: 403 }
-      );
-    }
+    const auth = await authenticateAdminApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { supabase } = auth;
 
     const body = await request.json().catch(() => ({}));
     const result = await createCategory(supabase, body);

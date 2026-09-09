@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi, authenticateAdminApi } from '@/lib/auth/apiAuth';
 import { updateDepartment, getDepartmentById } from '@/lib/departments/departments';
 
 interface RouteParams {
@@ -8,16 +8,11 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { supabase } = auth;
+
     const { id } = await params;
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const department = await getDepartmentById(supabase, id);
     if (!department) {
       return NextResponse.json({ success: false, message: 'Department not found' }, { status: 404 });
@@ -32,29 +27,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateAdminApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { supabase } = auth;
+
     const { id } = await params;
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify admin role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, is_active')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || profile.role !== 'admin' || !profile.is_active) {
-      return NextResponse.json(
-        { success: false, message: 'Forbidden: Admin access required.' },
-        { status: 403 }
-      );
-    }
 
     const body = await request.json().catch(() => ({}));
     const result = await updateDepartment(supabase, id, body);

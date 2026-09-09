@@ -1,6 +1,6 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import crypto from 'crypto';
-import { sanitizeFileName } from './attachments/validation';
+import { STORAGE_BUCKET_NAME, sanitizeFileName } from './attachments/validation';
 
 export * from './attachments/validation';
 

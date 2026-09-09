@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi } from '@/lib/auth/apiAuth';
 import { getComplaintActivity } from '@/lib/activity';
 
 interface RouteParams {
@@ -13,16 +13,10 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
 
     const activity = await getComplaintActivity(id);
 

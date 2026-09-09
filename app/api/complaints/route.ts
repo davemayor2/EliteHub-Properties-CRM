@@ -11,12 +11,32 @@ import { uploadAttachment } from '@/lib/attachments';
 import { sendComplaintReceivedEmail, sendNewComplaintAlertToCare } from '@/services/email';
 import { resolveComplaintRouting } from '@/lib/routing/assignComplaint';
 import { getSlaPolicy, calculateDeadlines } from '@/lib/sla';
+import { checkRateLimit, getClientIp, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit/rateLimiter';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_DIGITS_REGEX = /^\d{7,15}$/;
 
 export async function POST(request: NextRequest): Promise<NextResponse<ComplaintSubmissionResponse>> {
   try {
+    // 1. IP Rate Limiting (5 requests per 15 minutes per IP)
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(`complaint:${clientIp}`, RATE_LIMIT_CONFIGS.complaintSubmission);
+    if (!rateLimit.allowed) {
+      const retryAfterSec = Math.ceil((rateLimit.resetTimeMs - Date.now()) / 1000);
+      return NextResponse.json(
+        {
+          success: false,
+          message: `Too many submissions from this connection. Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) before submitting again.`,
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(retryAfterSec),
+          },
+        }
+      );
+    }
+
     const contentType = request.headers.get('content-type') || '';
     let fullName = '';
     let email: string | null = null;
@@ -25,6 +45,8 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
     let subject = '';
     let description = '';
     let attachmentFiles: File[] = [];
+    let honeypot: string | null = null;
+    let renderTime: number | null = null;
 
     if (contentType.includes('multipart/form-data')) {
       let formData: FormData;
@@ -46,6 +68,10 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       categoryId = catRaw && catRaw.trim() ? catRaw.trim() : null;
       subject = (formData.get('subject') as string) || '';
       description = (formData.get('description') as string) || '';
+
+      honeypot = formData.get('website') as string | null;
+      const rtRaw = formData.get('_renderTime') as string | null;
+      renderTime = rtRaw ? parseInt(rtRaw, 10) : null;
 
       // Collect all attachment files (support both 'attachments' and legacy 'attachment')
       const allFileEntries = [
@@ -79,6 +105,28 @@ export async function POST(request: NextRequest): Promise<NextResponse<Complaint
       categoryId = catRaw && typeof catRaw === 'string' && catRaw.trim() ? catRaw.trim() : null;
       subject = (body.subject as string) || '';
       description = (body.description as string) || '';
+
+      honeypot = (body.website as string) || null;
+      const rtRaw = body._renderTime as string | number | null | undefined;
+      renderTime = rtRaw ? Number(rtRaw) : null;
+    }
+
+    // 2. Anti-Spam: Check honeypot field (bots fill this in)
+    if (honeypot && honeypot.trim()) {
+      console.warn(`[Anti-Spam] Bot detected via honeypot field from IP ${clientIp}`);
+      return NextResponse.json(
+        { success: false, message: 'Invalid submission request.' },
+        { status: 400 }
+      );
+    }
+
+    // 3. Anti-Spam: Rapid bot submission check (< 1200ms from form mount)
+    if (renderTime && Date.now() - renderTime < 1200) {
+      console.warn(`[Anti-Spam] Rapid bot submission rejected (${Date.now() - renderTime}ms) from IP ${clientIp}`);
+      return NextResponse.json(
+        { success: false, message: 'Submission was submitted too rapidly. Please try again.' },
+        { status: 400 }
+      );
     }
 
     const errors: Record<string, string> = {};

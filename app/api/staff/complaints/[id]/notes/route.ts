@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi } from '@/lib/auth/apiAuth';
 import { getComplaintNotes, createComplaintNote } from '@/lib/notes';
 import { validateAttachment, MAX_ATTACHMENTS_PER_ACTION } from '@/lib/storage';
 import { uploadAttachment } from '@/lib/attachments';
@@ -15,17 +15,10 @@ interface RouteParams {
  */
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
     const notes = await getComplaintNotes(id);
 
     return NextResponse.json({ success: true, notes });
@@ -42,22 +35,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
  */
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { user, profile } = auth;
+
     const { id: complaintId } = await params;
-    const supabase = await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .eq('id', user.id)
-      .single();
 
     const contentType = request.headers.get('content-type') || '';
     let rawNote = '';

@@ -16,7 +16,7 @@ async function handleSlaCheck(request: NextRequest) {
 
     // Verify authorization:
     // 1. Bearer CRON_SECRET if configured, OR
-    // 2. Authenticated staff/admin session
+    // 2. Authenticated active staff/admin session
     const authHeader = request.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
@@ -25,12 +25,16 @@ async function handleSlaCheck(request: NextRequest) {
     if (cronSecret && authHeader === `Bearer ${cronSecret}`) {
       isAuthorized = true;
     } else {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
+      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        isAuthorized = true;
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('is_active')
+          .eq('id', user.id)
+          .single();
+        if (profile && profile.is_active !== false) {
+          isAuthorized = true;
+        }
       }
     }
 

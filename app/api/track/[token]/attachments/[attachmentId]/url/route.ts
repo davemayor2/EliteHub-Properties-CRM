@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { STORAGE_BUCKET_NAME } from '@/lib/storage';
+import { checkRateLimit, getClientIp, RATE_LIMIT_CONFIGS } from '@/lib/rate-limit/rateLimiter';
 
 interface RouteParams {
   params: Promise<{
@@ -11,6 +12,14 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const clientIp = getClientIp(request);
+    const rateLimit = checkRateLimit(`att_dl:${clientIp}`, RATE_LIMIT_CONFIGS.attachmentDownload);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { success: false, message: 'Too many download requests. Please try again shortly.' },
+        { status: 429 }
+      );
+    }
     const { token, attachmentId } = await params;
 
     if (!token || !attachmentId) {

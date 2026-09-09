@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi } from '@/lib/auth/apiAuth';
 import { deleteAttachment } from '@/lib/attachments';
 
 interface RouteParams {
@@ -16,30 +16,11 @@ interface RouteParams {
  */
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { user, profile } = auth;
+
     const { id: complaintId, attachmentId } = await params;
-    const supabase = await createClient();
-
-    // 1. Verify authenticated staff
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, full_name, role, is_active')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile || (profile.is_active !== undefined && !profile.is_active)) {
-      return NextResponse.json(
-        { success: false, message: 'Forbidden: Inactive or unauthorized staff account.' },
-        { status: 403 }
-      );
-    }
 
     // 2. Perform authorized deletion
     const deleteResult = await deleteAttachment({

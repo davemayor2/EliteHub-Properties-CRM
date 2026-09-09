@@ -41,6 +41,8 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
   const [categories, setCategories] = useState<CategoryOption[]>(initialCategories);
   const [formData, setFormData] = useState<FormDataState>(INITIAL_FORM_STATE);
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [honeypot, setHoneypot] = useState('');
+  const formRenderTime = React.useRef(Date.now());
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -155,6 +157,9 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
       submitData.append('categoryId', formData.categoryId);
       submitData.append('subject', formData.subject.trim());
       submitData.append('description', formData.description.trim());
+      // Anti-bot security fields
+      submitData.append('website', honeypot);
+      submitData.append('_renderTime', String(formRenderTime.current));
 
       attachments.forEach((file) => {
         submitData.append('attachments', file);
@@ -207,6 +212,20 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
       )}
 
       <form className="complaint-form" onSubmit={handleSubmit} noValidate>
+        {/* Anti-spam honeypot (hidden from human users, traps automated bots) */}
+        <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+          <label htmlFor="website">Do not fill this field</label>
+          <input
+            id="website"
+            name="website"
+            type="text"
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+          />
+        </div>
+
         {/* ROW 1: Full Name & Email Address */}
         <div className="form-row-grid">
           {/* Full Name */}

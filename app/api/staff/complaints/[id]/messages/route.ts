@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { authenticateStaffApi } from '@/lib/auth/apiAuth';
 import { sendStaffResponseEmail } from '@/services/email';
 import { validateAttachment, MAX_ATTACHMENTS_PER_ACTION } from '@/lib/storage';
 import { uploadAttachment } from '@/lib/attachments';
@@ -10,17 +10,11 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { supabase } = auth;
+
     const { id } = await params;
-    const supabase = await createClient();
-
-    // 1. Verify authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
 
     // 2. Fetch complaint messages
     const { data: messages, error: messagesError } = await supabase
@@ -73,24 +67,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    const auth = await authenticateStaffApi();
+    if (auth.errorResponse) return auth.errorResponse;
+    const { user, profile, supabase } = auth;
+
     const { id: complaintId } = await params;
-    const supabase = await createClient();
-
-    // 1. Verify authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // 2. Fetch user profile
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, full_name, role')
-      .eq('id', user.id)
-      .single();
 
     // 3. Parse and validate body
     const contentType = request.headers.get('content-type') || '';
