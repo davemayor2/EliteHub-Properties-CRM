@@ -5,6 +5,8 @@ import ComplaintProcess from '@/components/ComplaintProcess';
 import { supabaseServer } from '@/lib/supabase/server';
 import { getActivePublicCategories } from '@/lib/categories/categories';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const categories = await getActivePublicCategories(supabaseServer).catch(() => []);
 

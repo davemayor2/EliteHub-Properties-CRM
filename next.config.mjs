@@ -15,6 +15,7 @@ const nextConfig = {
   },
   experimental: {
     cpus: 1,
+    workerThreads: false,
   },
   webpack: (config, { dev }) => {
     config.resolve.alias['@'] = path.resolve(__dirname);
