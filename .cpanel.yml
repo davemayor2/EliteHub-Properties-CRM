@@ -5,4 +5,6 @@ deployment:
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R app components emails lib public scripts services src types next.config.mjs server.js app.js package.json package-lock.json tsconfig.json middleware.ts .env.example $DEPLOYPATH
     - /bin/rm -f $DEPLOYPATH/index.html
+    - /bin/mkdir -p $DEPLOYPATH/tmp
+    - /bin/touch $DEPLOYPATH/tmp/restart.txt
 
