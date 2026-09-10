@@ -54,7 +54,9 @@ export default function TeamTable({
     if (isFiltered) {
       return (
         <div className="empty-team-box">
-          <SearchX size={36} className="empty-team-icon" />
+          <div className="empty-team-icon-circle">
+            <SearchX size={28} />
+          </div>
           <h4 className="empty-team-title">No matching staff members found</h4>
           <p className="empty-team-desc">
             No team members matched your current search and filter settings.
@@ -74,7 +76,9 @@ export default function TeamTable({
 
     return (
       <div className="empty-team-box">
-        <Users size={36} className="empty-team-icon" />
+        <div className="empty-team-icon-circle">
+          <Users size={28} />
+        </div>
         <h4 className="empty-team-title">No staff members found</h4>
         <p className="empty-team-desc">
           Click &quot;Add Staff Member&quot; above to invite customer care agents to the CRM.

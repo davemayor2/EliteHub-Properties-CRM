@@ -47,7 +47,7 @@ export default function SlaPerformanceCard({
           </div>
           <Link
             href="/staff/complaints?sla=overdue"
-            className="text-xs font-semibold text-purple-700 hover:text-purple-900 flex items-center gap-1"
+            className="sla-view-risk-link"
           >
             <span>View At-Risk</span>
             <ArrowUpRight size={14} />
@@ -109,38 +109,38 @@ export default function SlaPerformanceCard({
       </div>
 
       {/* Mini Tally Row: Overdue, Approaching, Escalated */}
-      <div className="grid grid-cols-3 gap-2.5 mt-3 pt-3 border-t border-slate-100">
+      <div className="sla-tally-row">
         <Link
           href="/staff/complaints?sla=overdue"
-          className="p-2.5 rounded-lg bg-rose-50 border border-rose-100 hover:bg-rose-100/70 transition flex items-center justify-between"
+          className="sla-tally-pill overdue"
         >
-          <div className="flex items-center gap-2">
-            <AlertTriangle size={15} className="text-rose-600 shrink-0" />
-            <span className="text-xs font-medium text-rose-800">Overdue</span>
+          <div className="sla-tally-pill-left">
+            <AlertTriangle size={15} className="sla-tally-icon" />
+            <span className="sla-tally-label">Overdue</span>
           </div>
-          <span className="text-sm font-bold text-rose-900">{metrics.overdueCount}</span>
+          <span className="sla-tally-count">{metrics.overdueCount}</span>
         </Link>
 
         <Link
           href="/staff/complaints?sla=approaching"
-          className="p-2.5 rounded-lg bg-amber-50 border border-amber-100 hover:bg-amber-100/70 transition flex items-center justify-between"
+          className="sla-tally-pill approaching"
         >
-          <div className="flex items-center gap-2">
-            <Timer size={15} className="text-amber-600 shrink-0" />
-            <span className="text-xs font-medium text-amber-800">Approaching</span>
+          <div className="sla-tally-pill-left">
+            <Timer size={15} className="sla-tally-icon" />
+            <span className="sla-tally-label">Approaching</span>
           </div>
-          <span className="text-sm font-bold text-amber-900">{metrics.approachingCount}</span>
+          <span className="sla-tally-count">{metrics.approachingCount}</span>
         </Link>
 
         <Link
           href="/staff/complaints?escalated=true"
-          className="p-2.5 rounded-lg bg-red-50 border border-red-200 hover:bg-red-100/70 transition flex items-center justify-between"
+          className="sla-tally-pill escalated"
         >
-          <div className="flex items-center gap-2">
-            <Flame size={15} className="text-red-600 shrink-0" />
-            <span className="text-xs font-medium text-red-800">Escalated</span>
+          <div className="sla-tally-pill-left">
+            <Flame size={15} className="sla-tally-icon" />
+            <span className="sla-tally-label">Escalated</span>
           </div>
-          <span className="text-sm font-bold text-red-900">{metrics.escalatedCount}</span>
+          <span className="sla-tally-count">{metrics.escalatedCount}</span>
         </Link>
       </div>
     </div>

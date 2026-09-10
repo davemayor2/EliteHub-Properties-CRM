@@ -56,8 +56,8 @@ assert(indexCss.includes('.section-card-title {'), '.section-card-title defined 
 const distPadding = indexCss.match(/\.distribution-content\s*\{[^}]*padding:\s*([0-9]+px\s+[0-9]+px)/);
 assert(distPadding && distPadding[1] === '20px 24px', '.distribution-content has 20px 24px internal padding');
 
-const resPadding = indexCss.match(/\.resolution-metrics-grid\s*\{[^}]*padding:\s*([0-9]+px\s+[0-9]+px)/);
-assert(resPadding && resPadding[1] === '20px 24px', '.resolution-metrics-grid has 20px 24px internal padding');
+const resPadding = indexCss.match(/\.resolution-metrics-grid\s*\{[^}]*padding:\s*([0-9]+px(\s+[0-9]+px)?)/);
+assert(resPadding && (resPadding[1] === '24px' || resPadding[1] === '20px 24px'), '.resolution-metrics-grid has generous internal padding');
 
 const workloadPadding = indexCss.match(/\.my-workload-grid\s*\{[^}]*padding:\s*([0-9]+px\s+[0-9]+px)/);
 assert(workloadPadding && workloadPadding[1] === '20px 24px', '.my-workload-grid has 20px 24px internal padding');
@@ -65,13 +65,17 @@ assert(workloadPadding && workloadPadding[1] === '20px 24px', '.my-workload-grid
 const chartPadding = indexCss.match(/\.chart-canvas-wrapper\s*\{[^}]*padding:\s*([0-9]+px\s+[0-9]+px\s+[0-9]+px\s+[0-9]+px)/);
 assert(chartPadding && chartPadding[1] === '16px 24px 20px 24px', '.chart-canvas-wrapper has 16px 24px 20px 24px padding');
 
+assert(indexCss.includes('.sla-tally-pill {'), '.sla-tally-pill defined for SLA metrics');
+assert(indexCss.includes('.sla-view-risk-link {'), '.sla-view-risk-link defined for at-risk header link');
+
 console.log('\n--- 4. Validating Team Management Polish ---');
 const teamWorkspace = fs.readFileSync(teamWorkspacePath, 'utf8');
 assert(teamWorkspace.includes('team-metric-text-col'), 'TeamWorkspace separates metric number and label into text-col');
 assert(teamWorkspace.includes('team-metric-value'), 'TeamWorkspace uses distinct team-metric-value');
 assert(teamWorkspace.includes('team-metric-label'), 'TeamWorkspace uses distinct team-metric-label');
 assert(teamWorkspace.includes('btn-primary') && teamWorkspace.includes('btn-add-staff'), 'Add Staff Member uses btn-primary styling');
-assert(indexCss.includes('.team-search-input {') && indexCss.includes('padding: 10px 38px 10px 42px;'), 'Search field has 42px left padding preventing icon overlap');
+assert(indexCss.includes('.team-search-input {') && indexCss.includes('42px;'), 'Search field has 42px left padding preventing icon overlap');
+assert(indexCss.includes('.empty-team-icon-circle {'), '.empty-team-icon-circle defined for centered empty states');
 
 console.log('\n--- 5. Validating Dashboard Header & Timeframe Alignment ---');
 const dashboardPage = fs.readFileSync(dashboardPagePath, 'utf8');

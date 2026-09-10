@@ -58,13 +58,13 @@ export default function NeedsAttentionWidget({ complaints }: NeedsAttentionWidge
             </div>
           </div>
         </div>
-        <div className="section-card-body">
-          <div className="empty-state-banner">
+        <div className="section-card-body needs-attention-empty-body">
+          <div className="empty-state-banner attention-queue-banner">
             <div className="empty-state-icon-box">
               <ShieldCheck size={22} />
             </div>
             <div className="empty-state-text-block">
-              <h4 className="empty-state-heading">All active SLAs are on track</h4>
+              <h4 className="empty-state-heading">All Active SLAs are On Track!</h4>
               <p className="empty-state-sub">
                 No complaints are currently overdue, approaching deadlines, or escalated.
               </p>
