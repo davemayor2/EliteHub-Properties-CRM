@@ -58,6 +58,16 @@ export default function LoginForm() {
       }
 
       if (data?.user) {
+        // Touch profile updated_at to register active login state
+        try {
+          await supabase
+            .from('profiles')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', data.user.id);
+        } catch {
+          // Non-blocking update
+        }
+
         // Successful login: refresh router to update Server Component state and navigate
         router.refresh();
         router.push(redirectUrl.startsWith('/staff') ? redirectUrl : '/staff/dashboard');

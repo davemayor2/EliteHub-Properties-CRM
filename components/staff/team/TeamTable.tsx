@@ -134,7 +134,11 @@ export default function TeamTable({
 
               {/* Status */}
               <td className="td-status">
-                <StaffStatusBadge isActive={member.is_active} />
+                <StaffStatusBadge
+                  isActive={member.is_active}
+                  status={member.status}
+                  hasLoggedIn={member.has_logged_in}
+                />
               </td>
 
               {/* Assigned Complaints Metric */}
@@ -207,7 +211,11 @@ export default function TeamTable({
                   <p className="mobile-email-text">{member.email}</p>
                 </div>
               </div>
-              <StaffStatusBadge isActive={member.is_active} />
+              <StaffStatusBadge
+                isActive={member.is_active}
+                status={member.status}
+                hasLoggedIn={member.has_logged_in}
+              />
             </div>
 
             <div className="mobile-card-badges">

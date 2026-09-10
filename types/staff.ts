@@ -1,5 +1,5 @@
 export type StaffRole = 'admin' | 'staff';
-export type StaffStatus = 'active' | 'inactive';
+export type StaffStatus = 'active' | 'awaiting_login' | 'inactive';
 
 export interface StaffMember {
   id: string;
@@ -9,6 +9,9 @@ export interface StaffMember {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  has_logged_in?: boolean;
+  last_login_at?: string | null;
+  status?: StaffStatus;
 }
 
 export interface StaffDetailView extends StaffMember {
@@ -20,6 +23,7 @@ export interface CreateStaffPayload {
   full_name: string;
   email: string;
   role: StaffRole;
+  password?: string;
 }
 
 export interface UpdateStaffPayload {
@@ -33,3 +37,4 @@ export interface TeamFiltersState {
   role: 'all' | StaffRole;
   status: 'all' | StaffStatus;
 }
+

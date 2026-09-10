@@ -74,8 +74,9 @@ export default function TeamFilters({ filters, onChange, onReset }: TeamFiltersP
             className="team-filter-select"
           >
             <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
+            <option value="active">Active Members</option>
+            <option value="awaiting_login">Awaiting First Login</option>
+            <option value="inactive">Inactive Accounts</option>
           </select>
         </div>
 

@@ -18,10 +18,22 @@ export default function AddStaffModal({
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<StaffRole>('staff');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const handleGeneratePassword = () => {
+    const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
+    let rand = '';
+    for (let i = 0; i < 8; i++) {
+      rand += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    setPassword(`Elite#${rand}26`);
+    setShowPassword(true);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +41,7 @@ export default function AddStaffModal({
 
     const trimmedName = fullName.trim();
     const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
 
     if (!trimmedName || trimmedName.length < 2) {
       setErrorMsg('Full name must be at least 2 characters long.');
@@ -37,6 +50,11 @@ export default function AddStaffModal({
 
     if (!trimmedEmail) {
       setErrorMsg('Email address is required.');
+      return;
+    }
+
+    if (trimmedPassword && trimmedPassword.length < 8) {
+      setErrorMsg('Temporary password must be at least 8 characters long.');
       return;
     }
 
@@ -50,6 +68,7 @@ export default function AddStaffModal({
           full_name: trimmedName,
           email: trimmedEmail,
           role,
+          password: trimmedPassword || undefined,
         }),
       });
 
@@ -160,6 +179,68 @@ export default function AddStaffModal({
               {role === 'admin'
                 ? 'Administrators can manage complaints, team members, and role assignments.'
                 : 'Staff agents can review, process, and reply to assigned customer complaints.'}
+            </span>
+          </div>
+
+          {/* Temporary Password */}
+          <div className="form-group">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <label htmlFor="staff-password" className="form-label">
+                <span>Temporary Password (Optional)</span>
+              </label>
+              <button
+                type="button"
+                onClick={handleGeneratePassword}
+                disabled={loading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--color-primary)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                  textDecoration: 'underline',
+                }}
+              >
+                Auto-Generate Secure Password
+              </button>
+            </div>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="staff-password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave blank to auto-generate secure password"
+                className="form-input"
+                disabled={loading}
+                style={{ paddingRight: '40px', fontFamily: password ? 'monospace' : 'inherit' }}
+              />
+              {password && (
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
+                  tabIndex={-1}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              )}
+            </div>
+            <span className="form-hint">
+              The login password will be included directly in the invitation email sent to this staff member.
             </span>
           </div>
 

@@ -35,10 +35,10 @@ export default async function StaffDetailPage({ params }: StaffDetailPageProps) 
   const { id } = await params;
 
   // Enforce server-side active admin authorization
-  const { profile: loggedInAdmin } = await requireAdmin(`/staff/team/${id}`);
+  const { profile: loggedInAdmin, supabase } = await requireAdmin(`/staff/team/${id}`);
 
   // Fetch staff member record with workload metrics
-  const staff = await getStaffMemberById(id);
+  const staff = await getStaffMemberById(id, supabase);
 
   if (!staff) {
     notFound();
@@ -95,7 +95,11 @@ export default async function StaffDetailPage({ params }: StaffDetailPageProps) 
                 <div className="flex items-center gap-3 flex-wrap">
                   <h2 className="profile-heading-name">{staff.full_name}</h2>
                   <StaffRoleBadge role={staff.role} />
-                  <StaffStatusBadge isActive={staff.is_active} />
+                  <StaffStatusBadge
+                    isActive={staff.is_active}
+                    status={staff.status}
+                    hasLoggedIn={staff.has_logged_in}
+                  />
                 </div>
                 <div className="profile-subtext-line">
                   <Mail size={14} className="text-muted" />

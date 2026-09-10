@@ -5,6 +5,15 @@ import { renderStaffInvitationEmail } from '@/emails/StaffInvitationEmail';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function generateTemporaryPassword(): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
+  let rand = '';
+  for (let i = 0; i < 8; i++) {
+    rand += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `Elite#${rand}26`;
+}
+
 /**
  * Validates and creates a new staff member account.
  * Accessible only by administrators.
@@ -15,6 +24,7 @@ export async function createStaffMember(
   const fullName = payload.full_name?.trim();
   const email = payload.email?.trim().toLowerCase();
   const role = payload.role || 'staff';
+  const rawPassword = payload.password?.trim();
 
   // 1. Validation
   if (!fullName || fullName.length < 2) {
@@ -29,14 +39,21 @@ export async function createStaffMember(
     return { success: false, error: 'Role must be either admin or staff.' };
   }
 
+  if (rawPassword && rawPassword.length < 8) {
+    return { success: false, error: 'Temporary password must be at least 8 characters long.' };
+  }
+
+  const initialPassword = rawPassword || generateTemporaryPassword();
+
   try {
     const supabase = await createClient();
 
-    // 2. Call secure admin RPC to create user in auth.users and public.profiles
+    // 2. Call secure admin RPC to create user in auth.users and public.profiles with password
     const { data, error } = await supabase.rpc('admin_create_staff_user', {
       p_full_name: fullName,
       p_email: email,
       p_role: role,
+      p_password: initialPassword,
     });
 
     if (error || !data) {
@@ -47,15 +64,16 @@ export async function createStaffMember(
       };
     }
 
-    // 3. Send branded invitation email via Resend (non-blocking)
+    // 3. Send branded invitation email with login credentials via Resend (non-blocking)
     if (resend) {
       const appUrl = getAppUrl();
-      const setupUrl = `${appUrl}/staff/login?setup=true&email=${encodeURIComponent(email)}`;
+      const setupUrl = `${appUrl}/staff/login?email=${encodeURIComponent(email)}`;
       const emailContent = renderStaffInvitationEmail({
         fullName,
         email,
         role,
         setupUrl,
+        password: initialPassword,
       });
 
       resend.emails
@@ -85,6 +103,8 @@ export async function createStaffMember(
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
+        has_logged_in: false,
+        status: 'awaiting_login',
       },
     };
   } catch (err) {

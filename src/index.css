@@ -5366,13 +5366,22 @@ body {
   transition: all 0.15s ease;
 }
 
-.staff-status-badge.active {
+.staff-status-badge.active,
+.staff-status-badge.status-active {
   background-color: #ecfdf5;
   color: #047857;
   border: 1px solid #a7f3d0;
 }
 
-.staff-status-badge.inactive {
+.staff-status-badge.awaiting,
+.staff-status-badge.status-awaiting {
+  background-color: #fefce8;
+  color: #b45309;
+  border: 1px solid #fde047;
+}
+
+.staff-status-badge.inactive,
+.staff-status-badge.status-inactive {
   background-color: #f1f5f9;
   color: #64748b;
   border: 1px solid #cbd5e1;
@@ -5408,6 +5417,13 @@ body {
   border: 1px solid #e2e8f0;
 }
 
+/* --- Team Page Layout --- */
+.team-page-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
 /* --- Team Workspace & Metrics --- */
 .team-workspace {
   display: flex;
@@ -5415,7 +5431,7 @@ body {
   gap: 24px;
 }
 
-.team-header-row {
+.team-header-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -5425,7 +5441,7 @@ body {
 
 .team-metrics-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 16px;
 }
 
@@ -5464,6 +5480,11 @@ body {
 .team-metric-icon.active {
   background: #ecfdf5;
   color: #059669;
+}
+
+.team-metric-icon.awaiting {
+  background: #fefce8;
+  color: #d97706;
 }
 
 .team-metric-icon.admins {

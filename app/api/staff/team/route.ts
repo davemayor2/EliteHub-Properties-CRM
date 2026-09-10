@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     const role = (searchParams.get('role') || 'all') as 'all' | StaffRole;
     const status = (searchParams.get('status') || 'all') as 'all' | StaffStatus;
 
-    const team = await getTeamMembers({ search, role, status });
+    const team = await getTeamMembers({ search, role, status }, auth.supabase);
 
     return NextResponse.json({ success: true, team });
   } catch (err) {
@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
       full_name: body.full_name,
       email: body.email,
       role: body.role || 'staff',
+      password: body.password,
     });
 
     if (!result.success || !result.staff) {

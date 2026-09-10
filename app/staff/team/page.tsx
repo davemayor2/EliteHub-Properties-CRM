@@ -12,10 +12,10 @@ export const metadata: Metadata = {
 
 export default async function TeamManagementPage() {
   // Enforce server-side active admin authorization
-  const { profile } = await requireAdmin('/staff/team');
+  const { profile, supabase } = await requireAdmin('/staff/team');
 
-  // Fetch all staff members with complaint assignment metrics
-  const team = await getTeamMembers();
+  // Fetch all staff members with complaint assignment metrics and login status
+  const team = await getTeamMembers({}, supabase);
 
   return (
     <div className="team-page-container">

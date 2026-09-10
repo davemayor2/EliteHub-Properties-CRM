@@ -7,7 +7,7 @@ import TeamTable from './TeamTable';
 import AddStaffModal from './AddStaffModal';
 import EditStaffModal from './EditStaffModal';
 import DeactivateStaffDialog from './DeactivateStaffDialog';
-import { UserPlus, Users, ShieldCheck, UserX } from 'lucide-react';
+import { UserPlus, Users, ShieldCheck, UserX, Clock, Shield } from 'lucide-react';
 
 interface TeamWorkspaceProps {
   initialTeam: StaffDetailView[];
@@ -28,10 +28,11 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
   // Compute metric stats
   const metrics = useMemo(() => {
     const total = team.length;
-    const active = team.filter((s) => s.is_active).length;
+    const active = team.filter((s) => s.is_active && (s.status === 'active' || s.has_logged_in)).length;
+    const awaiting = team.filter((s) => s.is_active && (s.status === 'awaiting_login' || !s.has_logged_in)).length;
     const admins = team.filter((s) => s.role === 'admin' && s.is_active).length;
-    const inactive = team.filter((s) => !s.is_active).length;
-    return { total, active, admins, inactive };
+    const inactive = team.filter((s) => !s.is_active || s.status === 'inactive').length;
+    return { total, active, awaiting, admins, inactive };
   }, [team]);
 
   // Filter team based on search, role, and status
@@ -44,9 +45,12 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
 
       // Status filter
       if (filters.status !== 'all') {
-        const isTargetActive = filters.status === 'active';
-        if (member.is_active !== isTargetActive) {
-          return false;
+        if (filters.status === 'active') {
+          if (!member.is_active || (member.status !== 'active' && !member.has_logged_in)) return false;
+        } else if (filters.status === 'awaiting_login') {
+          if (!member.is_active || (member.status !== 'awaiting_login' && member.has_logged_in)) return false;
+        } else if (filters.status === 'inactive') {
+          if (member.is_active && member.status !== 'inactive') return false;
         }
       }
 
@@ -68,6 +72,8 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
     setTeam((prev) => [
       {
         ...newStaff,
+        has_logged_in: false,
+        status: 'awaiting_login',
         assigned_complaints_count: 0,
         open_complaints_count: 0,
       },
@@ -117,8 +123,18 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
         </div>
 
         <div className="team-metric-card">
+          <div className="team-metric-icon awaiting">
+            <Clock size={20} />
+          </div>
+          <div className="team-metric-text-col">
+            <span className="team-metric-value">{metrics.awaiting}</span>
+            <span className="team-metric-label">Awaiting First Login</span>
+          </div>
+        </div>
+
+        <div className="team-metric-card">
           <div className="team-metric-icon admins">
-            <ShieldCheck size={20} />
+            <Shield size={20} />
           </div>
           <div className="team-metric-text-col">
             <span className="team-metric-value">{metrics.admins}</span>
