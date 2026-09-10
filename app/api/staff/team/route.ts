@@ -39,12 +39,15 @@ export async function POST(request: NextRequest) {
     if (auth.errorResponse) return auth.errorResponse;
 
     const body = await request.json().catch(() => ({}));
-    const result = await createStaffMember({
-      full_name: body.full_name,
-      email: body.email,
-      role: body.role || 'staff',
-      password: body.password,
-    });
+    const result = await createStaffMember(
+      {
+        full_name: body.full_name,
+        email: body.email,
+        role: body.role || 'staff',
+        password: body.password,
+      },
+      auth.supabase
+    );
 
     if (!result.success || !result.staff) {
       return NextResponse.json(
@@ -53,7 +56,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, staff: result.staff });
+    return NextResponse.json({
+      success: true,
+      staff: result.staff,
+      temporary_password: result.temporary_password,
+    });
   } catch (err) {
     console.error('[API /api/staff/team POST Error]:', err);
     return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });

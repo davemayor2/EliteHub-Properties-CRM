@@ -5,6 +5,9 @@ import { getTeamMembers } from '@/lib/staff/getTeam';
 import DashboardHeader from '@/components/staff/DashboardHeader';
 import TeamWorkspace from '@/components/staff/team/TeamWorkspace';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: 'Team Management | EliteHub Properties Staff Portal',
   description: 'Manage staff access and administrative roles.',

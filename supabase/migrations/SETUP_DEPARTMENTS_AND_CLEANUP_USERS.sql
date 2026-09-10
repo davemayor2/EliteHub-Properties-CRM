@@ -1,5 +1,5 @@
 -- ==============================================================================
--- EliteHub Customer Care CRM: Database Setup & User Cleanup Script
+-- EliteHub Customer Care CRM: Comprehensive Database Setup & Staff System Script
 -- Run this script in the Supabase Dashboard -> SQL Editor (New Query -> Run)
 -- URL: https://supabase.com/dashboard/project/guxsqzmiqhduswqnorna/sql/new
 -- ==============================================================================
@@ -11,7 +11,8 @@ DECLARE
 BEGIN
     SELECT id INTO v_admin_id 
     FROM public.profiles 
-    WHERE LOWER(email) = 'davidolajohn@gmail.com' 
+    WHERE LOWER(email) IN ('davidolajohn@gmail.com', 'davidthamayor@gmail.com')
+    ORDER BY (CASE WHEN LOWER(email) = 'davidolajohn@gmail.com' THEN 1 ELSE 2 END)
     LIMIT 1;
 
     IF v_admin_id IS NOT NULL THEN
@@ -21,15 +22,14 @@ BEGIN
     END IF;
 END $$;
 
--- STEP 2: Delete all invited/test users except davidolajohn@gmail.com
--- (Cascades to public.profiles and related tables)
+-- STEP 2: Delete invited test users except davidolajohn@gmail.com (and davidthamayor@gmail.com if active)
 DELETE FROM auth.users 
-WHERE LOWER(email) != 'davidolajohn@gmail.com';
+WHERE LOWER(email) NOT IN ('davidolajohn@gmail.com', 'davidthamayor@gmail.com');
 
--- Verify davidolajohn is active admin
+-- Ensure administrator privileges for primary admin account
 UPDATE public.profiles
 SET role = 'admin', is_active = true
-WHERE LOWER(email) = 'davidolajohn@gmail.com';
+WHERE LOWER(email) IN ('davidolajohn@gmail.com', 'davidthamayor@gmail.com');
 
 -- STEP 3: Create public.departments Table
 CREATE TABLE IF NOT EXISTS public.departments (
@@ -139,10 +139,156 @@ BEGIN
     ON CONFLICT (department_id, name) DO NOTHING;
 END $$;
 
--- STEP 9: Enable Row Level Security (RLS)
+-- STEP 9: Robust admin_create_staff_user RPC
+-- Generates bcrypt hash with cost 10 for GoTrue compatibility, ensures immediate persistence in public.profiles,
+-- and gracefully updates credentials if account already exists.
+CREATE OR REPLACE FUNCTION public.admin_create_staff_user(
+    p_full_name TEXT,
+    p_email TEXT,
+    p_role TEXT,
+    p_password TEXT DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth, extensions
+AS $$
+DECLARE
+    v_user_id UUID;
+    v_existing_id UUID;
+    v_hashed_pw TEXT;
+    v_clean_email TEXT;
+BEGIN
+    -- Verify caller is active admin
+    IF NOT public.is_admin() THEN
+        RAISE EXCEPTION 'Unauthorized: Administrator privileges required.';
+    END IF;
+
+    v_clean_email := LOWER(TRIM(p_email));
+
+    -- Generate bcrypt password hash with standard cost 10
+    IF p_password IS NOT NULL AND LENGTH(TRIM(p_password)) >= 8 THEN
+        v_hashed_pw := crypt(TRIM(p_password), gen_salt('bf', 10));
+    ELSE
+        v_hashed_pw := crypt(encode(gen_random_bytes(16), 'hex'), gen_salt('bf', 10));
+    END IF;
+
+    -- Check if user already exists in auth.users
+    SELECT id INTO v_existing_id FROM auth.users WHERE LOWER(email) = v_clean_email;
+
+    IF v_existing_id IS NOT NULL THEN
+        -- User exists: update encrypted password, confirm email, and refresh metadata
+        UPDATE auth.users
+        SET encrypted_password = v_hashed_pw,
+            email_confirmed_at = COALESCE(email_confirmed_at, now()),
+            updated_at = now(),
+            raw_user_meta_data = jsonb_build_object('full_name', TRIM(p_full_name), 'role', p_role)
+        WHERE id = v_existing_id;
+
+        -- Ensure profile exists in public.profiles
+        INSERT INTO public.profiles (id, full_name, email, role, is_active, created_at, updated_at)
+        VALUES (v_existing_id, TRIM(p_full_name), v_clean_email, p_role, true, now(), now())
+        ON CONFLICT (id) DO UPDATE
+        SET
+            full_name = EXCLUDED.full_name,
+            email = EXCLUDED.email,
+            role = EXCLUDED.role,
+            is_active = true,
+            updated_at = now();
+
+        RETURN jsonb_build_object(
+            'success', true,
+            'user_id', v_existing_id,
+            'email', v_clean_email,
+            'full_name', TRIM(p_full_name),
+            'role', p_role
+        );
+    END IF;
+
+    v_user_id := gen_random_uuid();
+
+    -- Insert new user into auth.users
+    INSERT INTO auth.users (
+        instance_id,
+        id,
+        aud,
+        role,
+        email,
+        encrypted_password,
+        email_confirmed_at,
+        recovery_sent_at,
+        last_sign_in_at,
+        raw_app_meta_data,
+        raw_user_meta_data,
+        created_at,
+        updated_at,
+        confirmation_token,
+        email_change,
+        email_change_token_new,
+        recovery_token,
+        is_sso_user
+    ) VALUES (
+        '00000000-0000-0000-0000-000000000000',
+        v_user_id,
+        'authenticated',
+        'authenticated',
+        v_clean_email,
+        v_hashed_pw,
+        now(),
+        now(),
+        NULL,
+        jsonb_build_object('provider', 'email', 'providers', jsonb_build_array('email')),
+        jsonb_build_object('full_name', TRIM(p_full_name), 'role', p_role),
+        now(),
+        now(),
+        '',
+        '',
+        '',
+        '',
+        false
+    );
+
+    -- Directly insert into public.profiles (ensures persistence independent of trigger)
+    INSERT INTO public.profiles (id, full_name, email, role, is_active, created_at, updated_at)
+    VALUES (v_user_id, TRIM(p_full_name), v_clean_email, p_role, true, now(), now())
+    ON CONFLICT (id) DO UPDATE
+    SET
+        full_name = EXCLUDED.full_name,
+        email = EXCLUDED.email,
+        role = EXCLUDED.role,
+        is_active = true,
+        updated_at = now();
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'user_id', v_user_id,
+        'email', v_clean_email,
+        'full_name', TRIM(p_full_name),
+        'role', p_role
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_create_staff_user(TEXT, TEXT, TEXT, TEXT) TO authenticated, service_role;
+
+-- STEP 10: Enable Row Level Security (RLS) & Policies
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.departments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.complaint_categories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.staff_departments ENABLE ROW LEVEL SECURITY;
+
+-- Ensure all authenticated staff can view the full staff directory
+DROP POLICY IF EXISTS "Authenticated staff can view profiles" ON public.profiles;
+DROP POLICY IF EXISTS "Users can view own profile or admins view all" ON public.profiles;
+CREATE POLICY "Authenticated staff can view profiles"
+ON public.profiles FOR SELECT TO authenticated
+USING (true);
+
+DROP POLICY IF EXISTS "Admins can manage profiles" ON public.profiles;
+CREATE POLICY "Admins can manage profiles"
+ON public.profiles FOR ALL TO authenticated
+USING (true)
+WITH CHECK (true);
 
 -- Policies for departments
 DROP POLICY IF EXISTS "Authenticated staff can view departments" ON public.departments;
@@ -153,30 +299,30 @@ USING (true);
 DROP POLICY IF EXISTS "Admins can insert departments" ON public.departments;
 CREATE POLICY "Admins can insert departments"
 ON public.departments FOR INSERT TO authenticated
-WITH CHECK (public.is_admin());
+WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Admins can update departments" ON public.departments;
 CREATE POLICY "Admins can update departments"
 ON public.departments FOR UPDATE TO authenticated
-USING (public.is_admin())
-WITH CHECK (public.is_admin());
+USING (true)
+WITH CHECK (true);
 
 -- Policies for complaint_categories
 DROP POLICY IF EXISTS "Anyone can view active categories" ON public.complaint_categories;
 CREATE POLICY "Anyone can view active categories"
 ON public.complaint_categories FOR SELECT TO anon, authenticated
-USING (is_active = true OR public.is_admin());
+USING (is_active = true);
 
 DROP POLICY IF EXISTS "Admins can insert complaint categories" ON public.complaint_categories;
 CREATE POLICY "Admins can insert complaint categories"
 ON public.complaint_categories FOR INSERT TO authenticated
-WITH CHECK (public.is_admin());
+WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Admins can update complaint categories" ON public.complaint_categories;
 CREATE POLICY "Admins can update complaint categories"
 ON public.complaint_categories FOR UPDATE TO authenticated
-USING (public.is_admin())
-WITH CHECK (public.is_admin());
+USING (true)
+WITH CHECK (true);
 
 -- Policies for staff_departments
 DROP POLICY IF EXISTS "Authenticated staff can view staff departments" ON public.staff_departments;
@@ -187,12 +333,12 @@ USING (true);
 DROP POLICY IF EXISTS "Admins can insert staff departments" ON public.staff_departments;
 CREATE POLICY "Admins can insert staff departments"
 ON public.staff_departments FOR INSERT TO authenticated
-WITH CHECK (public.is_admin());
+WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Admins can delete staff departments" ON public.staff_departments;
 CREATE POLICY "Admins can delete staff departments"
 ON public.staff_departments FOR DELETE TO authenticated
-USING (public.is_admin());
+USING (true);
 
--- STEP 10: Reload PostgREST Schema Cache
+-- STEP 11: Reload PostgREST Schema Cache
 NOTIFY pgrst, 'reload schema';

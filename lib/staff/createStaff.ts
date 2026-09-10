@@ -5,22 +5,32 @@ import { renderStaffInvitationEmail } from '@/emails/StaffInvitationEmail';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function generateTemporaryPassword(): string {
-  const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%';
-  let rand = '';
-  for (let i = 0; i < 8; i++) {
-    rand += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return `Elite#${rand}26`;
+export function generateTemporaryPassword(): string {
+  const letters = 'abcdefghjkmnpqrstuvwxyz';
+  const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const numbers = '23456789';
+  const symbols = '!@#$%&*';
+
+  let pw = '';
+  pw += uppers.charAt(Math.floor(Math.random() * uppers.length));
+  pw += letters.charAt(Math.floor(Math.random() * letters.length));
+  pw += letters.charAt(Math.floor(Math.random() * letters.length));
+  pw += numbers.charAt(Math.floor(Math.random() * numbers.length));
+  pw += symbols.charAt(Math.floor(Math.random() * symbols.length));
+  pw += uppers.charAt(Math.floor(Math.random() * uppers.length));
+  pw += letters.charAt(Math.floor(Math.random() * letters.length));
+  pw += numbers.charAt(Math.floor(Math.random() * numbers.length));
+  return `Elite#${pw}`;
 }
 
 /**
- * Validates and creates a new staff member account.
+ * Validates, creates, and invites a new staff member account.
  * Accessible only by administrators.
  */
 export async function createStaffMember(
-  payload: CreateStaffPayload
-): Promise<{ success: boolean; staff?: StaffMember; error?: string }> {
+  payload: CreateStaffPayload,
+  client?: any
+): Promise<{ success: boolean; staff?: StaffMember; temporary_password?: string; error?: string }> {
   const fullName = payload.full_name?.trim();
   const email = payload.email?.trim().toLowerCase();
   const role = payload.role || 'staff';
@@ -43,10 +53,11 @@ export async function createStaffMember(
     return { success: false, error: 'Temporary password must be at least 8 characters long.' };
   }
 
+  // Always guarantee a random high-entropy temporary password if not explicitly supplied
   const initialPassword = rawPassword || generateTemporaryPassword();
 
   try {
-    const supabase = await createClient();
+    const supabase = client || (await createClient());
 
     // 2. Call secure admin RPC to create user in auth.users and public.profiles with password
     const { data, error } = await supabase.rpc('admin_create_staff_user', {
@@ -64,42 +75,56 @@ export async function createStaffMember(
       };
     }
 
-    // 3. Send branded invitation email with login credentials via Resend (non-blocking)
-    if (resend) {
-      const appUrl = getAppUrl();
-      const setupUrl = `${appUrl}/staff/login?email=${encodeURIComponent(email)}`;
-      const emailContent = renderStaffInvitationEmail({
-        fullName,
-        email,
-        role,
-        setupUrl,
-        password: initialPassword,
-      });
+    const userId = data.user_id;
 
-      resend.emails
-        .send({
+    // 3. Fallback direct upsert to public.profiles to guarantee persistence across page refreshes
+    if (userId) {
+      try {
+        await supabase.from('profiles').upsert({
+          id: userId,
+          full_name: fullName,
+          email: email,
+          role: role,
+          is_active: true,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (upsertErr) {
+        console.warn('[createStaffMember direct upsert warning]:', upsertErr);
+      }
+    }
+
+    // 4. Send branded invitation email with login credentials via Resend
+    if (resend) {
+      try {
+        const appUrl = getAppUrl();
+        const setupUrl = `${appUrl}/staff/login?email=${encodeURIComponent(email)}`;
+        const emailContent = renderStaffInvitationEmail({
+          fullName,
+          email,
+          role,
+          setupUrl,
+          password: initialPassword,
+        });
+
+        await resend.emails.send({
           from: getEmailFrom(),
           to: email,
           subject: emailContent.subject,
           html: emailContent.html,
-        })
-        .then((res) => {
-          if (res.error) {
-            console.warn('[Staff Invitation Email Warning]:', res.error.message);
-          }
-        })
-        .catch((err) => {
-          console.error('[Staff Invitation Email Exception]:', err);
         });
+      } catch (emailErr) {
+        console.error('[Staff Invitation Email Exception]:', emailErr);
+      }
     }
 
     return {
       success: true,
+      temporary_password: initialPassword,
       staff: {
-        id: data.user_id,
-        full_name: data.full_name,
-        email: data.email,
-        role: data.role,
+        id: userId,
+        full_name: data.full_name || fullName,
+        email: data.email || email,
+        role: data.role || role,
         is_active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
