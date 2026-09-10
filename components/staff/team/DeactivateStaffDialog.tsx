@@ -62,7 +62,7 @@ export default function DeactivateStaffDialog({
     <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="modal-card modal-card-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="flex items-center gap-3">
+          <div className="modal-header-left">
             <div className={`modal-icon-pill ${isCurrentlyActive ? 'icon-pill-danger' : 'icon-pill-success'}`}>
               {isCurrentlyActive ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
             </div>

@@ -74,7 +74,7 @@ export default function AddStaffModal({
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="modal-header">
-          <div className="flex items-center gap-3">
+          <div className="modal-header-left">
             <div className="modal-icon-pill">
               <UserPlus size={18} />
             </div>

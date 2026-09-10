@@ -95,7 +95,7 @@ export default function EditStaffModal({
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
         {/* Modal Header */}
         <div className="modal-header">
-          <div className="flex items-center gap-3">
+          <div className="modal-header-left">
             <div className="modal-icon-pill">
               <Edit2 size={18} />
             </div>
