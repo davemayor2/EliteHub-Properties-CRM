@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Building2, AlertCircle, Check } from 'lucide-react';
+import { X, Building2, AlertCircle, Check, Loader2, AlignLeft, Zap, ShieldCheck } from 'lucide-react';
 import { DepartmentRecord } from '@/types/department';
 
 interface DepartmentModalProps {
@@ -86,11 +86,12 @@ export default function DepartmentModal({
   };
 
   return (
-    <div className="modal-backdrop-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="modal-container-card" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
         <div className="modal-header">
-          <div className="flex items-center gap-3">
-            <div className="header-icon-pill icon-pill-emerald">
+          <div className="modal-header-left">
+            <div className="modal-icon-pill">
               <Building2 size={18} />
             </div>
             <div>
@@ -99,30 +100,41 @@ export default function DepartmentModal({
               </h3>
               <p className="modal-subtitle">
                 {isEditing
-                  ? 'Update department details and routing behavior'
+                  ? 'Update department configuration and routing rules'
                   : 'Add a new organizational unit to receive complaints'}
               </p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="btn-modal-close" aria-label="Close">
+          <button
+            type="button"
+            onClick={onClose}
+            className="modal-close-btn"
+            disabled={isSubmitting}
+            aria-label="Close dialog"
+          >
             <X size={18} />
           </button>
         </div>
 
+        {/* Error Banner */}
         {error && (
           <div className="modal-error-banner" role="alert">
-            <AlertCircle size={15} />
+            <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="modal-form-body">
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="modal-form">
           {/* Department Name */}
-          <div className="form-field">
-            <label className="form-label">
-              Department Name <span className="required-asterisk">*</span>
+          <div className="form-group">
+            <label htmlFor="dept-name" className="form-label">
+              <Building2 size={14} />
+              <span>Department Name</span>
+              <span className="text-red-500 font-bold">*</span>
             </label>
             <input
+              id="dept-name"
               type="text"
               className="form-input"
               placeholder="e.g. Technical Support, Billing & Finance"
@@ -130,13 +142,18 @@ export default function DepartmentModal({
               onChange={(e) => setName(e.target.value)}
               disabled={isSubmitting}
               required
+              autoFocus
             />
           </div>
 
           {/* Description */}
-          <div className="form-field">
-            <label className="form-label">Description</label>
+          <div className="form-group">
+            <label htmlFor="dept-desc" className="form-label">
+              <AlignLeft size={14} />
+              <span>Description (Optional)</span>
+            </label>
             <textarea
+              id="dept-desc"
               className="form-textarea"
               placeholder="Brief description of department scope and responsibilities"
               value={description}
@@ -146,62 +163,72 @@ export default function DepartmentModal({
             />
           </div>
 
-          {/* Auto Assign Toggle */}
-          <div className="modal-toggle-row">
-            <div className="toggle-text-block">
-              <span className="toggle-title">Intelligent Auto-Assignment</span>
-              <span className="toggle-desc">
-                Automatically allocate new complaints to the least-busy active staff member in this department.
+          {/* Intelligent Auto-Assignment Toggle Card */}
+          <div className="department-toggle-card">
+            <div className="toggle-info-col">
+              <div className="flex items-center gap-1.5">
+                <Zap size={14} className="text-amber-500" />
+                <span className="toggle-info-title">Intelligent Auto-Assignment</span>
+              </div>
+              <span className="toggle-info-desc">
+                Automatically allocate incoming complaints to the least-busy active staff member in this department.
               </span>
             </div>
-            <label className="switch-control">
+            <label className="switch-wrapper" aria-label="Toggle Auto-Assignment">
               <input
                 type="checkbox"
                 checked={autoAssignEnabled}
                 onChange={(e) => setAutoAssignEnabled(e.target.checked)}
                 disabled={isSubmitting}
               />
-              <span className="switch-slider" />
+              <span className="switch-slider-round" />
             </label>
           </div>
 
           {/* Active Status Toggle (Editing only) */}
           {isEditing && (
-            <div className="modal-toggle-row">
-              <div className="toggle-text-block">
-                <span className="toggle-title">Active Status</span>
-                <span className="toggle-desc">
-                  Inactive departments cannot receive new categories or automated routing.
+            <div className="department-toggle-card">
+              <div className="toggle-info-col">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck size={14} className="text-emerald-600" />
+                  <span className="toggle-info-title">Department Active</span>
+                </div>
+                <span className="toggle-info-desc">
+                  Inactive departments cannot receive new category mappings or automated ticket routing.
                 </span>
               </div>
-              <label className="switch-control">
+              <label className="switch-wrapper" aria-label="Toggle Department Active Status">
                 <input
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
                   disabled={isSubmitting}
                 />
-                <span className="switch-slider" />
+                <span className="switch-slider-round" />
               </label>
             </div>
           )}
 
-          <div className="modal-actions-footer">
+          {/* Modal Actions */}
+          <div className="modal-actions">
             <button
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="btn-modal-cancel"
+              className="btn-cancel"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="btn-modal-submit"
+              className="btn-submit-modal"
             >
               {isSubmitting ? (
-                <span>Saving...</span>
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Saving...</span>
+                </>
               ) : (
                 <>
                   <Check size={15} />

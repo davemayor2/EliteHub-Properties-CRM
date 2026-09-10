@@ -131,6 +131,17 @@ export async function createDepartment(
     if (error.code === '23505') {
       return { success: false, message: 'A department with this name already exists.' };
     }
+    if (
+      error.code === 'PGRST205' ||
+      error.message?.includes('schema cache') ||
+      error.message?.includes('departments')
+    ) {
+      return {
+        success: false,
+        message:
+          'Database setup required: The "departments" table has not been initialized in Supabase yet. Please run the SETUP_DEPARTMENTS_AND_CLEANUP_USERS.sql migration script in your Supabase SQL Editor.',
+      };
+    }
     return { success: false, message: error.message };
   }
 

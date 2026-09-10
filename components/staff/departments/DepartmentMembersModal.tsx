@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Users, UserPlus, Trash2, AlertCircle, Shield } from 'lucide-react';
+import { X, Users, UserPlus, Trash2, AlertCircle, Shield, Loader2 } from 'lucide-react';
 import { DepartmentRecord, StaffDepartmentRecord } from '@/types/department';
 import { StaffProfileRecord } from '@/types/complaint';
 
@@ -117,11 +117,12 @@ export default function DepartmentMembersModal({
   };
 
   return (
-    <div className="modal-backdrop-overlay" onClick={onClose} role="dialog" aria-modal="true">
-      <div className="modal-container-card" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header */}
         <div className="modal-header">
-          <div className="flex items-center gap-3">
-            <div className="header-icon-pill icon-pill-emerald">
+          <div className="modal-header-left">
+            <div className="modal-icon-pill">
               <Users size={18} />
             </div>
             <div>
@@ -131,23 +132,24 @@ export default function DepartmentMembersModal({
               </p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="btn-modal-close" aria-label="Close">
+          <button type="button" onClick={onClose} className="modal-close-btn" aria-label="Close">
             <X size={18} />
           </button>
         </div>
 
+        {/* Error Banner */}
         {error && (
           <div className="modal-error-banner" role="alert">
-            <AlertCircle size={15} />
+            <AlertCircle size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
-        <div className="modal-form-body">
+        <div className="modal-body">
           {/* Add Member Form */}
-          <form onSubmit={handleAddMember} className="add-member-control-row">
+          <form onSubmit={handleAddMember} className="flex items-center gap-2">
             <select
-              className="form-input form-select"
+              className="form-select flex-1"
               value={selectedStaffId}
               onChange={(e) => setSelectedStaffId(e.target.value)}
               disabled={isAdding || availableStaff.length === 0}
@@ -167,15 +169,20 @@ export default function DepartmentMembersModal({
             <button
               type="submit"
               disabled={isAdding || !selectedStaffId}
-              className="btn-modal-submit shrink-0"
+              className="btn-submit-modal shrink-0"
+              style={{ height: '42px' }}
             >
-              <UserPlus size={15} />
-              <span>{isAdding ? 'Adding...' : 'Add Member'}</span>
+              {isAdding ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <UserPlus size={15} />
+              )}
+              <span>{isAdding ? 'Adding...' : 'Add'}</span>
             </button>
           </form>
 
           {/* Members List */}
-          <div className="department-members-list-wrapper">
+          <div className="department-members-list-wrapper mt-2">
             <div className="members-section-header">
               <span className="members-count-badge">
                 {members.length} {members.length === 1 ? 'Member' : 'Members'}
@@ -184,6 +191,7 @@ export default function DepartmentMembersModal({
 
             {isLoading ? (
               <div className="members-loading-state">
+                <Loader2 size={18} className="animate-spin text-muted inline mr-2" />
                 <span>Loading department members...</span>
               </div>
             ) : members.length === 0 ? (
@@ -234,8 +242,8 @@ export default function DepartmentMembersModal({
           </div>
         </div>
 
-        <div className="modal-actions-footer">
-          <button type="button" onClick={onClose} className="btn-modal-cancel">
+        <div className="modal-actions">
+          <button type="button" onClick={onClose} className="btn-cancel">
             Done
           </button>
         </div>
