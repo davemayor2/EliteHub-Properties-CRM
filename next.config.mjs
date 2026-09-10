@@ -16,8 +16,13 @@ const nextConfig = {
   experimental: {
     cpus: 1,
   },
-  webpack: (config) => {
+  webpack: (config, { dev }) => {
     config.resolve.alias['@'] = path.resolve(__dirname);
+    if (!dev) {
+      // Disable webpack disk caching during production build to prevent memory spikes
+      // and SIGKILL (-9) from PackFileCacheStrategy serializing large CSS bundles
+      config.cache = false;
+    }
     return config;
   },
   headers: async () => {
