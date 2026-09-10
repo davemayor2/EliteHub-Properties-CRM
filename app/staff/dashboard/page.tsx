@@ -110,17 +110,14 @@ export default async function StaffDashboardPage({ searchParams }: PageProps) {
 
   return (
     <div className="dashboard-page-container command-center-container">
-      {/* Top Header */}
+      {/* Top Header with Integrated Timeframe Filter */}
       <DashboardHeader
         title="Operational Command Center"
         subtitle="Real-time analytics, complaint volumes, team workload, and resolution performance."
         profile={profile}
-      />
-
-      {/* Global Date Range Filter Bar */}
-      <div className="command-center-filter-row">
+      >
         <DateRangeFilter currentRange={range} />
-      </div>
+      </DashboardHeader>
 
       {/* Operational Alert for Unassigned Complaints (Admins) */}
       {isAdmin && (

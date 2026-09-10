@@ -58,12 +58,18 @@ export default function NeedsAttentionWidget({ complaints }: NeedsAttentionWidge
             </div>
           </div>
         </div>
-        <div className="p-6 text-center text-slate-500 bg-slate-50/50 rounded-xl border border-slate-100 mt-2">
-          <ShieldCheck size={32} className="mx-auto text-emerald-500 mb-2" />
-          <p className="font-semibold text-slate-800 text-sm">All Active SLAs are On Track!</p>
-          <p className="text-xs text-slate-500 mt-0.5">
-            No complaints are currently overdue, approaching deadlines, or escalated.
-          </p>
+        <div className="section-card-body">
+          <div className="empty-state-banner">
+            <div className="empty-state-icon-box">
+              <ShieldCheck size={22} />
+            </div>
+            <div className="empty-state-text-block">
+              <h4 className="empty-state-heading">All active SLAs are on track</h4>
+              <p className="empty-state-sub">
+                No complaints are currently overdue, approaching deadlines, or escalated.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     );

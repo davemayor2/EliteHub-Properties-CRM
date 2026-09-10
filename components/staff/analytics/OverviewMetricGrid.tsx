@@ -29,25 +29,25 @@ export default function OverviewMetricGrid({
       title: 'Total Complaints',
       count: metrics.total,
       subtitle: `${metrics.periodTotal} received in ${selectedRangeLabel.toLowerCase()}`,
-      icon: <Inbox size={20} strokeWidth={2.2} />,
+      icon: <Inbox size={18} strokeWidth={2} />,
       accent: '#145E3D',
-      iconBg: '#ecfdf5',
+      iconBg: '#f0fdf4',
       href: '/staff/complaints',
     },
     {
       title: 'New Complaints',
       count: metrics.new,
       subtitle: 'Awaiting initial triage',
-      icon: <Sparkles size={20} strokeWidth={2.2} />,
-      accent: '#0d9488',
-      iconBg: '#f0fdfa',
+      icon: <Sparkles size={18} strokeWidth={2} />,
+      accent: '#0284c7',
+      iconBg: '#f0f9ff',
       href: '/staff/complaints?status=new',
     },
     {
       title: 'Open Complaints',
       count: metrics.open,
       subtitle: 'Under active investigation',
-      icon: <FolderOpen size={20} strokeWidth={2.2} />,
+      icon: <FolderOpen size={18} strokeWidth={2} />,
       accent: '#2563eb',
       iconBg: '#eff6ff',
       href: '/staff/complaints?status=open',
@@ -56,7 +56,7 @@ export default function OverviewMetricGrid({
       title: 'Pending Complaints',
       count: metrics.pending,
       subtitle: 'Awaiting customer feedback',
-      icon: <Clock size={20} strokeWidth={2.2} />,
+      icon: <Clock size={18} strokeWidth={2} />,
       accent: '#d97706',
       iconBg: '#fffbeb',
       href: '/staff/complaints?status=pending',
@@ -68,7 +68,7 @@ export default function OverviewMetricGrid({
       title: 'Resolved Complaints',
       count: metrics.resolved,
       subtitle: 'Successfully addressed',
-      icon: <CheckCircle2 size={20} strokeWidth={2.2} />,
+      icon: <CheckCircle2 size={18} strokeWidth={2} />,
       accent: '#16a34a',
       iconBg: '#f0fdf4',
       href: '/staff/complaints?status=resolved',
@@ -77,7 +77,7 @@ export default function OverviewMetricGrid({
       title: 'Closed Complaints',
       count: metrics.closed,
       subtitle: 'Finalized & archived',
-      icon: <Archive size={20} strokeWidth={2.2} />,
+      icon: <Archive size={18} strokeWidth={2} />,
       accent: '#64748b',
       iconBg: '#f8fafc',
       href: '/staff/complaints?status=closed',
@@ -86,7 +86,7 @@ export default function OverviewMetricGrid({
       title: 'Unassigned Complaints',
       count: metrics.unassigned,
       subtitle: 'Requires staff allocation',
-      icon: <UserX size={20} strokeWidth={2.2} />,
+      icon: <UserX size={18} strokeWidth={2} />,
       accent: metrics.unassigned > 0 ? '#ea580c' : '#64748b',
       iconBg: metrics.unassigned > 0 ? '#fff7ed' : '#f8fafc',
       href: '/staff/complaints?assigned=unassigned',
@@ -96,9 +96,9 @@ export default function OverviewMetricGrid({
       title: 'Resolution Rate',
       count: `${metrics.resolutionRate}%`,
       subtitle: 'Overall resolution efficiency',
-      icon: <TrendingUp size={20} strokeWidth={2.2} />,
-      accent: '#C5A880',
-      iconBg: '#faf5ee',
+      icon: <TrendingUp size={18} strokeWidth={2} />,
+      accent: '#145E3D',
+      iconBg: '#f0fdf4',
       href: null,
     },
   ];
@@ -109,10 +109,7 @@ export default function OverviewMetricGrid({
       <div className="stats-cards-grid row-grid-4">
         {row1Cards.map((card) => {
           const CardContent = (
-            <div
-              className="stat-card"
-              style={{ borderTop: `3px solid ${card.accent}` }}
-            >
+            <div className="stat-card">
               <div className="stat-card-header">
                 <span className="stat-card-title">{card.title}</span>
                 <div
@@ -124,7 +121,7 @@ export default function OverviewMetricGrid({
               </div>
               <div className="stat-card-body">
                 <div className="stat-count-row">
-                  <span className="stat-card-count" style={{ color: card.accent }}>
+                  <span className="stat-card-count" style={{ color: '#0f172a' }}>
                     {typeof card.count === 'number' ? card.count.toLocaleString() : card.count}
                   </span>
                   {card.href && (
@@ -147,13 +144,10 @@ export default function OverviewMetricGrid({
       </div>
 
       {/* Row 2 */}
-      <div className="stats-cards-grid row-grid-4 mt-4">
+      <div className="stats-cards-grid row-grid-4" style={{ marginTop: '16px' }}>
         {row2Cards.map((card) => {
           const CardContent = (
-            <div
-              className="stat-card"
-              style={{ borderTop: `3px solid ${card.accent}` }}
-            >
+            <div className="stat-card">
               <div className="stat-card-header">
                 <div className="flex items-center gap-2">
                   <span className="stat-card-title">{card.title}</span>
@@ -170,7 +164,10 @@ export default function OverviewMetricGrid({
               </div>
               <div className="stat-card-body">
                 <div className="stat-count-row">
-                  <span className="stat-card-count" style={{ color: card.accent }}>
+                  <span
+                    className="stat-card-count"
+                    style={{ color: card.title === 'Unassigned Complaints' && metrics.unassigned > 0 ? '#ea580c' : '#0f172a' }}
+                  >
                     {typeof card.count === 'number' ? card.count.toLocaleString() : card.count}
                   </span>
                   {card.href && (

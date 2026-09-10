@@ -97,42 +97,42 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
       {/* Metrics Summary Strip */}
       <div className="team-metrics-grid">
         <div className="team-metric-card">
-          <div className="metric-icon-box bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+          <div className="team-metric-icon total">
             <Users size={20} />
           </div>
-          <div>
-            <span className="metric-value">{metrics.total}</span>
-            <span className="metric-label">Total Staff</span>
+          <div className="team-metric-text-col">
+            <span className="team-metric-value">{metrics.total}</span>
+            <span className="team-metric-label">Total Staff</span>
           </div>
         </div>
 
         <div className="team-metric-card">
-          <div className="metric-icon-box bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+          <div className="team-metric-icon active">
             <ShieldCheck size={20} />
           </div>
-          <div>
-            <span className="metric-value">{metrics.active}</span>
-            <span className="metric-label">Active Members</span>
+          <div className="team-metric-text-col">
+            <span className="team-metric-value">{metrics.active}</span>
+            <span className="team-metric-label">Active Members</span>
           </div>
         </div>
 
         <div className="team-metric-card">
-          <div className="metric-icon-box bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+          <div className="team-metric-icon admins">
             <ShieldCheck size={20} />
           </div>
-          <div>
-            <span className="metric-value">{metrics.admins}</span>
-            <span className="metric-label">Administrators</span>
+          <div className="team-metric-text-col">
+            <span className="team-metric-value">{metrics.admins}</span>
+            <span className="team-metric-label">Administrators</span>
           </div>
         </div>
 
         <div className="team-metric-card">
-          <div className="metric-icon-box bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+          <div className="team-metric-icon workload">
             <UserX size={20} />
           </div>
-          <div>
-            <span className="metric-value">{metrics.inactive}</span>
-            <span className="metric-label">Inactive Accounts</span>
+          <div className="team-metric-text-col">
+            <span className="team-metric-value">{metrics.inactive}</span>
+            <span className="team-metric-label">Inactive Accounts</span>
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
           <button
             type="button"
             onClick={() => setIsAddModalOpen(true)}
-            className="btn-add-staff"
+            className="btn-primary btn-add-staff"
           >
             <UserPlus size={16} />
             <span>Add Staff Member</span>
