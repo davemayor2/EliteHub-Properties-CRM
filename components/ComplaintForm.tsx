@@ -401,28 +401,30 @@ export default function ComplaintForm({ initialCategories = [] }: ComplaintFormP
         </div>
 
         {/* ROW 5: Supporting Documents & Evidence */}
-        <AttachmentUploader
-          files={attachments}
-          onFilesChange={(newFiles) => {
-            setAttachments(newFiles);
-            if (errors.attachment) {
-              setErrors((prev) => {
-                const next = { ...prev };
-                delete next.attachment;
-                return next;
-              });
-            }
-          }}
-          disabled={isSubmitting}
-          label="Supporting Documents & Evidence"
-          helperText="Upload screenshots, receipts, or other files that may help us understand your complaint (PDF, JPG, PNG, WebP, TXT up to 10MB each. Max 5 files)."
-        />
-        {errors.attachment && (
-          <div className="field-error-msg" style={{ marginTop: '8px' }} role="alert">
-            <AlertCircle size={14} />
-            <span>{errors.attachment}</span>
-          </div>
-        )}
+        <div className="form-field">
+          <AttachmentUploader
+            files={attachments}
+            onFilesChange={(newFiles) => {
+              setAttachments(newFiles);
+              if (errors.attachment) {
+                setErrors((prev) => {
+                  const next = { ...prev };
+                  delete next.attachment;
+                  return next;
+                });
+              }
+            }}
+            disabled={isSubmitting}
+            label="Supporting Documents & Evidence"
+            helperText="Upload screenshots, receipts, or other files that may help us understand your complaint (PDF, JPG, PNG, WebP, TXT up to 10MB each. Max 5 files)."
+          />
+          {errors.attachment && (
+            <div className="field-error-msg" style={{ marginTop: '8px' }} role="alert">
+              <AlertCircle size={14} />
+              <span>{errors.attachment}</span>
+            </div>
+          )}
+        </div>
 
         {/* Submit Button */}
         <button

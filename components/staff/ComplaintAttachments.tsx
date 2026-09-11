@@ -58,10 +58,10 @@ export default function ComplaintAttachments({
     activeTab === 'customer'
       ? customerAttachments
       : activeTab === 'staff'
-      ? staffAttachments
-      : activeTab === 'internal'
-      ? internalAttachments
-      : attachments;
+        ? staffAttachments
+        : activeTab === 'internal'
+          ? internalAttachments
+          : attachments;
 
   const handleDelete = (attachmentId: string) => {
     setAttachments((prev) => prev.filter((a) => a.id !== attachmentId));
@@ -140,7 +140,7 @@ export default function ComplaintAttachments({
           className={showUploader ? 'btn-cancel' : 'btn-upload-evidence'}
         >
           {showUploader ? <X size={14} /> : <Plus size={14} />}
-          <span>{showUploader ? 'Cancel' : '+ Upload Evidence'}</span>
+          <span>{showUploader ? 'Cancel' : 'Upload Evidence'}</span>
         </button>
       </div>
 
@@ -247,10 +247,10 @@ export default function ComplaintAttachments({
           activeTab === 'all'
             ? 'No attachments uploaded yet for this complaint.'
             : activeTab === 'internal'
-            ? 'No confidential internal attachments.'
-            : activeTab === 'customer'
-            ? 'No customer evidence attachments.'
-            : 'No staff shared attachments.'
+              ? 'No confidential internal attachments.'
+              : activeTab === 'customer'
+                ? 'No customer evidence attachments.'
+                : 'No staff shared attachments.'
         }
       />
     </div>
