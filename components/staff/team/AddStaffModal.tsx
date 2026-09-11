@@ -301,203 +301,205 @@ export default function AddStaffModal({
         ) : (
           /* Modal Form */
           <form onSubmit={handleSubmit} className="modal-form">
-            {/* Full Name */}
-            <div className="form-group">
-              <label htmlFor="staff-full-name" className="form-label">
-                <User size={14} />
-                <span>Full Name</span>
-                <span className="text-red-500 font-bold">*</span>
-              </label>
-              <input
-                id="staff-full-name"
-                type="text"
-                required
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Jane Doe"
-                className="form-input"
-                disabled={loading}
-                autoFocus
-              />
-            </div>
-
-            {/* Email Address */}
-            <div className="form-group">
-              <label htmlFor="staff-email" className="form-label">
-                <Mail size={14} />
-                <span>Email Address</span>
-                <span className="text-red-500 font-bold">*</span>
-              </label>
-              <input
-                id="staff-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. jane.doe@elitehubproperties.com"
-                className="form-input"
-                disabled={loading}
-              />
-            </div>
-
-            {/* Role Selection */}
-            <div className="form-group">
-              <label htmlFor="staff-role" className="form-label">
-                <Shield size={14} />
-                <span>Role & Permissions</span>
-              </label>
-              <select
-                id="staff-role"
-                value={role}
-                onChange={(e) => setRole(e.target.value as StaffRole)}
-                className="form-select"
-                disabled={loading}
-              >
-                <option value="staff">Staff Agent (Customer Care CRM Access)</option>
-                <option value="admin">Administrator (Full Access & Team Management)</option>
-              </select>
-              <span className="form-hint">
-                {role === 'admin'
-                  ? 'Administrators can manage complaints, configure routing, and invite new staff members.'
-                  : 'Staff agents can review, process, and reply to assigned customer complaints.'}
-              </span>
-            </div>
-
-            {/* Auto-Generated Temporary Password Card */}
-            <div
-              style={{
-                backgroundColor: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: '10px',
-                padding: '14px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <label
-                  htmlFor="staff-password"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    color: '#0f172a',
-                    margin: 0,
-                  }}
-                >
-                  <KeyRound size={14} className="text-amber-500" />
-                  <span>Temporary Password</span>
+            <div className="modal-form-body">
+              {/* Full Name */}
+              <div className="form-group">
+                <label htmlFor="staff-full-name" className="form-label">
+                  <User size={14} />
+                  <span>Full Name</span>
+                  <span className="text-red-500 font-bold">*</span>
                 </label>
-                <button
-                  type="button"
-                  onClick={handleRegeneratePassword}
-                  disabled={loading}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--color-green-primary, #145E3D)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: 0,
-                  }}
-                  title="Generate a different random password"
-                >
-                  <RefreshCw size={12} />
-                  <span>Regenerate</span>
-                </button>
-              </div>
-
-              <div style={{ position: 'relative' }}>
                 <input
-                  id="staff-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Generating secure password..."
+                  id="staff-full-name"
+                  type="text"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Jane Doe"
                   className="form-input"
                   disabled={loading}
-                  style={{
-                    paddingRight: '120px',
-                    fontFamily: 'monospace',
-                    letterSpacing: '0.04em',
-                    fontWeight: 600,
-                  }}
-                  required
+                  autoFocus
                 />
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: '8px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                  }}
+              </div>
+
+              {/* Email Address */}
+              <div className="form-group">
+                <label htmlFor="staff-email" className="form-label">
+                  <Mail size={14} />
+                  <span>Email Address</span>
+                  <span className="text-red-500 font-bold">*</span>
+                </label>
+                <input
+                  id="staff-email"
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="e.g. jane.doe@elitehubproperties.com"
+                  className="form-input"
+                  disabled={loading}
+                />
+              </div>
+
+              {/* Role Selection */}
+              <div className="form-group">
+                <label htmlFor="staff-role" className="form-label">
+                  <Shield size={14} />
+                  <span>Role & Permissions</span>
+                </label>
+                <select
+                  id="staff-role"
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as StaffRole)}
+                  className="form-select"
+                  disabled={loading}
                 >
+                  <option value="staff">Staff Agent (Customer Care CRM Access)</option>
+                  <option value="admin">Administrator (Full Access & Team Management)</option>
+                </select>
+                <span className="form-hint">
+                  {role === 'admin'
+                    ? 'Administrators can manage complaints, configure routing, and invite new staff members.'
+                    : 'Staff agents can review, process, and reply to assigned customer complaints.'}
+                </span>
+              </div>
+
+              {/* Auto-Generated Temporary Password Card */}
+              <div
+                style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '10px',
+                  padding: '14px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label
+                    htmlFor="staff-password"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#0f172a',
+                      margin: 0,
+                    }}
+                  >
+                    <KeyRound size={14} className="text-amber-500" />
+                    <span>Temporary Password</span>
+                  </label>
                   <button
                     type="button"
-                    onClick={handleCopyPassword}
+                    onClick={handleRegeneratePassword}
+                    disabled={loading}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '4px',
-                      background: '#f1f5f9',
-                      border: '1px solid #cbd5e1',
-                      borderRadius: '5px',
-                      padding: '4px 8px',
-                      color: '#475569',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                    }}
-                    title="Copy password to clipboard"
-                  >
-                    {copiedPassword ? (
-                      <Check size={12} className="text-emerald-600" />
-                    ) : (
-                      <Copy size={12} />
-                    )}
-                    <span>{copiedPassword ? 'Copied' : 'Copy'}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    style={{
                       background: 'none',
                       border: 'none',
-                      color: '#64748b',
-                      cursor: 'pointer',
-                      fontSize: '11px',
+                      color: 'var(--color-green-primary, #145E3D)',
+                      fontSize: '12px',
                       fontWeight: 600,
-                      padding: '4px',
+                      cursor: 'pointer',
+                      padding: 0,
                     }}
+                    title="Generate a different random password"
                   >
-                    {showPassword ? 'Hide' : 'Show'}
+                    <RefreshCw size={12} />
+                    <span>Regenerate</span>
                   </button>
                 </div>
-              </div>
 
-              <span
-                style={{
-                  fontSize: '12px',
-                  color: '#64748b',
-                  lineHeight: 1.4,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                }}
-              >
-                🔒 This password is automatically attached to the invitation email sent to this staff member.
-              </span>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="staff-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Generating secure password..."
+                    className="form-input"
+                    disabled={loading}
+                    style={{
+                      paddingRight: '120px',
+                      fontFamily: 'monospace',
+                      letterSpacing: '0.04em',
+                      fontWeight: 600,
+                    }}
+                    required
+                  />
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: '8px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleCopyPassword}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        background: '#f1f5f9',
+                        border: '1px solid #cbd5e1',
+                        borderRadius: '5px',
+                        padding: '4px 8px',
+                        color: '#475569',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                      }}
+                      title="Copy password to clipboard"
+                    >
+                      {copiedPassword ? (
+                        <Check size={12} className="text-emerald-600" />
+                      ) : (
+                        <Copy size={12} />
+                      )}
+                      <span>{copiedPassword ? 'Copied' : 'Copy'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        padding: '4px',
+                      }}
+                    >
+                      {showPassword ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                </div>
+
+                <span
+                  style={{
+                    fontSize: '12px',
+                    color: '#64748b',
+                    lineHeight: 1.4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  🔒 This password is automatically attached to the invitation email sent to this staff member.
+                </span>
+              </div>
             </div>
 
             {/* Modal Actions */}

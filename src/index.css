@@ -6309,6 +6309,9 @@ body {
   border-radius: 14px;
   width: 100%;
   max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
   overflow: hidden;
@@ -6400,13 +6403,40 @@ body {
 }
 
 /* Modal Body & Forms */
-.modal-form,
+.modal-form {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background-color: #ffffff;
+}
+
+.modal-form-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
 .modal-body {
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 18px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
   background-color: #ffffff;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
 .dialog-body {
@@ -9167,6 +9197,40 @@ body {
   padding: 20px 24px;
   overflow-y: auto;
   flex: 1;
+  min-height: 0;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+.modal-form-body::-webkit-scrollbar,
+.modal-body::-webkit-scrollbar,
+.dialog-body::-webkit-scrollbar,
+.modal-form::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-form-body::-webkit-scrollbar-track,
+.modal-body::-webkit-scrollbar-track,
+.dialog-body::-webkit-scrollbar-track,
+.modal-form::-webkit-scrollbar-track {
+  background: #f8fafc;
+  border-radius: 4px;
+}
+
+.modal-form-body::-webkit-scrollbar-thumb,
+.modal-body::-webkit-scrollbar-thumb,
+.dialog-body::-webkit-scrollbar-thumb,
+.modal-form::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.modal-form-body::-webkit-scrollbar-thumb:hover,
+.modal-body::-webkit-scrollbar-thumb:hover,
+.dialog-body::-webkit-scrollbar-thumb:hover,
+.modal-form::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .dialog-text {
@@ -9212,6 +9276,8 @@ body {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  flex-shrink: 0;
+  margin-top: auto;
 }
 
 /* Unified Modern Modal Buttons */
