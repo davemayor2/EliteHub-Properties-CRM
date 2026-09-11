@@ -68,9 +68,9 @@ export default function LoginForm() {
           // Non-blocking update
         }
 
-        // Successful login: refresh router to update Server Component state and navigate
-        router.refresh();
-        router.push(redirectUrl.startsWith('/staff') ? redirectUrl : '/staff/dashboard');
+        // Full window navigation ensures the server StaffLayout initializes fresh with the new session and displays the sidebar/navbar
+        const target = redirectUrl.startsWith('/staff') ? redirectUrl : '/staff/dashboard';
+        window.location.href = target;
       }
     } catch (err) {
       console.error('Staff login error:', err);

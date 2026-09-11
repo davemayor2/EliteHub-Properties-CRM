@@ -3,6 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import SidebarWrapper from '@/components/staff/SidebarWrapper';
 import { Profile } from '@/types/profile';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function StaffLayout({
   children,
 }: {

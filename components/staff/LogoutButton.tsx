@@ -16,11 +16,10 @@ export default function LogoutButton({ className = '' }: { className?: string })
 
     try {
       await supabase.auth.signOut();
-      router.refresh();
-      router.push('/staff/login');
+      window.location.href = '/staff/login';
     } catch (err) {
       console.error('Logout error:', err);
-      router.push('/staff/login');
+      window.location.href = '/staff/login';
     } finally {
       setIsLoggingOut(false);
     }
