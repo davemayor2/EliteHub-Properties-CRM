@@ -8,13 +8,32 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+function isUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
+    // 1. Authenticate staff member
     const auth = await authenticateStaffApi();
     if (auth.errorResponse) return auth.errorResponse;
     const { supabase } = auth;
 
-    const { id } = await params;
+    const rawId = (await params).id;
+    const isIdUuid = isUuid(rawId);
+
+    let complaintId = rawId;
+    if (!isIdUuid) {
+      const { data: refMatch } = await supabase
+        .from('complaints')
+        .select('id')
+        .or(`reference_number.eq.${rawId},tracking_token.eq.${rawId}`)
+        .maybeSingle();
+
+      if (refMatch?.id) {
+        complaintId = refMatch.id;
+      }
+    }
 
     // 2. Fetch complaint messages
     const { data: messages, error: messagesError } = await supabase
@@ -23,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         *,
         sender_profile:profiles(id, full_name, email, role)
       `)
-      .eq('complaint_id', id)
+      .eq('complaint_id', complaintId)
       .order('created_at', { ascending: true });
 
     if (messagesError) {
@@ -38,7 +57,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { data: attachments } = await supabase
       .from('complaint_attachments')
       .select('*')
-      .eq('complaint_id', id)
+      .eq('complaint_id', complaintId)
       .not('message_id', 'is', null);
 
     const attachmentsByMessageId: Record<string, any[]> = {};
@@ -58,20 +77,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       attachments: attachmentsByMessageId[msg.id] || [],
     }));
 
-    return NextResponse.json({ success: true, messages: messagesWithAttachments });
+    return NextResponse.json({
+      success: true,
+      messages: messagesWithAttachments,
+    });
   } catch (err) {
     console.error('[API Messages GET Exception]:', err);
-    return NextResponse.json({ success: false, message: 'Internal server error' }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
+    // 1. Authenticate staff member
     const auth = await authenticateStaffApi();
     if (auth.errorResponse) return auth.errorResponse;
     const { user, profile, supabase } = auth;
 
-    const { id: complaintId } = await params;
+    const rawId = (await params).id;
+    const isIdUuid = isUuid(rawId);
 
     // 3. Parse and validate body
     const contentType = request.headers.get('content-type') || '';
@@ -96,14 +123,13 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       rawMessage = body.message || '';
     }
 
-    if (!rawMessage || typeof rawMessage !== 'string' || !rawMessage.trim()) {
+    const trimmedMessage = rawMessage.trim();
+    if (!trimmedMessage) {
       return NextResponse.json(
-        { success: false, message: 'Message content cannot be empty.' },
+        { success: false, message: 'Response message cannot be empty.' },
         { status: 400 }
       );
     }
-
-    const trimmedMessage = rawMessage.trim();
 
     // Validate attachment limits
     if (attachmentFiles.length > MAX_ATTACHMENTS_PER_ACTION) {
@@ -130,19 +156,29 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // 4. Verify complaint exists and fetch recipient info & SLA targets
-    const { data: complaint, error: complaintErr } = await supabase
-      .from('complaints')
-      .select('id, status, email, full_name, reference_number, tracking_token, first_responded_at, first_response_due_at, first_response_sla_breached')
-      .eq('id', complaintId)
-      .single();
+    // 4. Verify complaint exists using select('*') so missing columns never cause 42703 error
+    const lookup = isIdUuid
+      ? supabase.from('complaints').select('*').eq('id', rawId)
+      : supabase.from('complaints').select('*').or(`reference_number.eq.${rawId},tracking_token.eq.${rawId}`);
 
-    if (complaintErr || !complaint) {
+    const { data: complaint, error: complaintErr } = await lookup.maybeSingle();
+
+    if (complaintErr) {
+      console.error('[API Messages POST Complaint Error]:', complaintErr);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${complaintErr.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!complaint) {
       return NextResponse.json(
         { success: false, message: 'Complaint not found' },
         { status: 404 }
       );
     }
+
+    const complaintId = complaint.id;
 
     // 5. Insert message
     const { data: insertedMessage, error: insertErr } = await supabase
@@ -193,31 +229,37 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // 7. SLA Tracking: Record First Response timestamp if not previously set
+    // 7. SLA Tracking: Record First Response timestamp if column exists and not previously set
     try {
-      if (!complaint.first_responded_at) {
+      if ('first_responded_at' in complaint && !complaint.first_responded_at) {
         const nowIso = new Date().toISOString();
         const dueTime = complaint.first_response_due_at ? new Date(complaint.first_response_due_at).getTime() : null;
         const isBreached = Boolean(dueTime && Date.now() > dueTime);
 
+        const slaUpdates: Record<string, any> = {
+          first_responded_at: nowIso,
+        };
+        if ('first_response_sla_breached' in complaint) {
+          slaUpdates.first_response_sla_breached = isBreached;
+        }
+
         await supabase
           .from('complaints')
-          .update({
-            first_responded_at: nowIso,
-            first_response_sla_breached: isBreached,
-          })
+          .update(slaUpdates)
           .eq('id', complaintId);
 
         if (isBreached) {
-          await supabase.from('complaint_activity').insert({
-            complaint_id: complaintId,
-            actor_type: 'system',
-            activity_type: 'first_response_sla_breached',
-            metadata: {
-              due_at: complaint.first_response_due_at,
-              responded_at: nowIso,
-            },
-          });
+          try {
+            await supabase.from('complaint_activity').insert({
+              complaint_id: complaintId,
+              actor_type: 'system',
+              activity_type: 'first_response_sla_breached',
+              metadata: {
+                due_at: complaint.first_response_due_at,
+                responded_at: nowIso,
+              },
+            });
+          } catch {}
         }
       }
     } catch (slaErr) {
@@ -229,7 +271,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       .from('complaints')
       .select('status')
       .eq('id', complaintId)
-      .single();
+      .maybeSingle();
 
     const currentStatus = updatedComplaint?.status || complaint.status;
 

@@ -1,6 +1,8 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import { ComplaintActivityRecord, LogActivityParams } from '@/types/activity';
 
+const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 /**
  * Server-side helper to fetch activity timeline for a complaint.
  * Ordered newest first for internal staff workflow.
@@ -10,13 +12,27 @@ export async function getComplaintActivity(complaintId: string): Promise<Complai
   if (!complaintId) return [];
 
   try {
+    let targetId = complaintId;
+    if (!isUuid(complaintId)) {
+      const { data: refRecord } = await supabaseServer
+        .from('complaints')
+        .select('id')
+        .or(`reference_number.eq.${complaintId},tracking_token.eq.${complaintId}`)
+        .maybeSingle();
+      if (refRecord?.id) {
+        targetId = refRecord.id;
+      } else {
+        return [];
+      }
+    }
+
     const { data, error } = await supabaseServer
       .from('complaint_activity')
       .select(`
         *,
         actor_profile:profiles!complaint_activity_actor_id_fkey(id, full_name, email, role)
       `)
-      .eq('complaint_id', complaintId)
+      .eq('complaint_id', targetId)
       .order('created_at', { ascending: false });
 
     if (error) {

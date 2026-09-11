@@ -11,15 +11,35 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+function isUuid(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const auth = await authenticateStaffApi();
     if (auth.errorResponse) return auth.errorResponse;
     const { supabase } = auth;
 
-    const { id } = await params;
+    const rawId = (await params).id;
+    const isIdUuid = isUuid(rawId);
 
-    // Fetch complaint with attachments, assigned staff, category, department, SLA policy, and feedback
+    // Resolve complaint ID (supports both UUID and reference number)
+    let complaintId = rawId;
+    if (!isIdUuid) {
+      const { data: refMatch } = await supabase
+        .from('complaints')
+        .select('id')
+        .or(`reference_number.eq.${rawId},tracking_token.eq.${rawId}`)
+        .maybeSingle();
+
+      if (!refMatch?.id) {
+        return NextResponse.json({ success: false, message: 'Complaint not found' }, { status: 404 });
+      }
+      complaintId = refMatch.id;
+    }
+
+    // Fetch complaint with attachments, assigned staff, category, department, and feedback
     let { data: complaint, error: complaintError } = await supabase
       .from('complaints')
       .select(`
@@ -27,14 +47,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
         category:complaint_categories(id, name, description, is_active),
         department:departments(id, name, is_active, auto_assign_enabled),
-        sla_policy:sla_policies(id, name, first_response_hours, resolution_hours, warning_percentage, auto_escalate),
-        attachments:complaint_attachments(*),
-        feedback:customer_feedback(*)
+        attachments:complaint_attachments(*)
       `)
-      .eq('id', id)
-      .single();
+      .eq('id', complaintId)
+      .maybeSingle();
 
-    if (complaintError) {
+    if (complaintError || !complaint) {
       // Fallback if joined tables do not exist yet
       const fallback = await supabase
         .from('complaints')
@@ -43,16 +61,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
           attachments:complaint_attachments(*)
         `)
-        .eq('id', id)
-        .single();
+        .eq('id', complaintId)
+        .maybeSingle();
 
       if (fallback.data) {
         complaint = fallback.data;
         complaintError = null;
+      } else {
+        const basic = await supabase
+          .from('complaints')
+          .select('*')
+          .eq('id', complaintId)
+          .maybeSingle();
+        if (basic.data) {
+          complaint = basic.data;
+          complaintError = null;
+        }
       }
     }
 
-    if (complaintError || !complaint) {
+    if (!complaint) {
       return NextResponse.json({ success: false, message: 'Complaint not found' }, { status: 404 });
     }
 
@@ -69,25 +97,32 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     if (auth.errorResponse) return auth.errorResponse;
     const { user, profile, supabase } = auth;
 
-    const { id } = await params;
+    const rawId = (await params).id;
+    const isIdUuid = isUuid(rawId);
 
     const body = await request.json().catch(() => ({}));
     const { status, priority, assigned_to, category_id, department_id } = body;
 
-    // Verify existing complaint
-    const { data: existingComplaint, error: fetchErr } = await supabase
-      .from('complaints')
-      .select(`
-        id, status, priority, assigned_to, email, reference_number, tracking_token, full_name,
-        resolved_at, closed_at, resolution_due_at, resolution_sla_breached,
-        first_response_due_at, first_responded_at, first_response_sla_breached
-      `)
-      .eq('id', id)
-      .single();
+    // Verify existing complaint using select('*') so missing SLA columns never cause 42703 errors
+    const lookup = isIdUuid
+      ? supabase.from('complaints').select('*').eq('id', rawId)
+      : supabase.from('complaints').select('*').or(`reference_number.eq.${rawId},tracking_token.eq.${rawId}`);
 
-    if (fetchErr || !existingComplaint) {
+    const { data: existingComplaint, error: fetchErr } = await lookup.maybeSingle();
+
+    if (fetchErr) {
+      console.error('[API /api/staff/complaints/[id] PATCH Fetch Error]:', fetchErr);
+      return NextResponse.json(
+        { success: false, message: `Database error: ${fetchErr.message}` },
+        { status: 500 }
+      );
+    }
+
+    if (!existingComplaint) {
       return NextResponse.json({ success: false, message: 'Complaint not found' }, { status: 404 });
     }
+
+    const complaintId = existingComplaint.id;
 
     const updates: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -102,37 +137,38 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       }
       updates.status = status;
 
-      // SLA Resolution Tracking
+      // SLA Resolution Tracking (safely check if columns exist on the table record)
       if (status === 'resolved') {
-        if (!existingComplaint.resolved_at) {
+        if ('resolved_at' in existingComplaint && !existingComplaint.resolved_at) {
           const now = new Date();
           const nowIso = now.toISOString();
           updates.resolved_at = nowIso;
 
-          if (existingComplaint.resolution_due_at) {
+          if (existingComplaint.resolution_due_at && 'resolution_sla_breached' in existingComplaint) {
             const isBreached = now > new Date(existingComplaint.resolution_due_at);
             updates.resolution_sla_breached = isBreached;
 
             if (isBreached && !existingComplaint.resolution_sla_breached) {
-              await supabase.from('complaint_activity').insert({
-                complaint_id: id,
-                actor_type: 'system',
-                activity_type: 'resolution_sla_breached',
-                metadata: {
-                  reference_number: existingComplaint.reference_number,
-                  resolution_due_at: existingComplaint.resolution_due_at,
-                  resolved_at: nowIso,
-                },
-              });
+              try {
+                await supabase.from('complaint_activity').insert({
+                  complaint_id: complaintId,
+                  actor_type: 'system',
+                  activity_type: 'resolution_sla_breached',
+                  metadata: {
+                    reference_number: existingComplaint.reference_number,
+                    resolution_due_at: existingComplaint.resolution_due_at,
+                    resolved_at: nowIso,
+                  },
+                });
+              } catch {}
             }
           }
         }
       } else if (status === 'closed') {
-        if (!existingComplaint.closed_at) {
+        if ('closed_at' in existingComplaint && !existingComplaint.closed_at) {
           updates.closed_at = new Date().toISOString();
         }
       }
-      // Reopened complaints: Preserve historical resolved_at, first_responded_at, and breach flags
     }
 
     if (priority !== undefined) {
@@ -154,7 +190,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
           .from('profiles')
           .select('id')
           .eq('id', assigned_to)
-          .single();
+          .maybeSingle();
 
         if (profileErr || !targetProfile) {
           return NextResponse.json(
@@ -174,39 +210,49 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       updates.department_id = department_id === null || department_id === '' ? null : department_id;
     }
 
-    // Execute update with rich selects and fallback
+    // Execute update with progressive fallbacks
     let updatedComplaint: any = null;
     let updateError: any = null;
 
     const richUpdate = await supabase
       .from('complaints')
       .update(updates)
-      .eq('id', id)
+      .eq('id', complaintId)
       .select(`
         *,
         assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
         category:complaint_categories(id, name, description, is_active),
         department:departments(id, name, is_active, auto_assign_enabled),
-        sla_policy:sla_policies(id, name, first_response_hours, resolution_hours, warning_percentage, auto_escalate),
         attachments:complaint_attachments(*)
       `)
-      .single();
+      .maybeSingle();
 
     if (richUpdate.error) {
-      // If joined relation error or column error, retry without category/department joins
+      console.warn('[API PATCH Rich Select Fallback]:', richUpdate.error.message);
       const fallbackUpdate = await supabase
         .from('complaints')
         .update(updates)
-        .eq('id', id)
+        .eq('id', complaintId)
         .select(`
           *,
           assigned_profile:profiles!complaints_assigned_to_fkey(id, full_name, email, role),
           attachments:complaint_attachments(*)
         `)
-        .single();
+        .maybeSingle();
 
       if (fallbackUpdate.error) {
-        updateError = fallbackUpdate.error;
+        const basicUpdate = await supabase
+          .from('complaints')
+          .update(updates)
+          .eq('id', complaintId)
+          .select('*')
+          .maybeSingle();
+
+        if (basicUpdate.error) {
+          updateError = basicUpdate.error;
+        } else {
+          updatedComplaint = basicUpdate.data;
+        }
       } else {
         updatedComplaint = fallbackUpdate.data;
       }
@@ -238,7 +284,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 
     // Trigger Customer Satisfaction Feedback Request on first resolution/closure
     if (statusChanged && (status === 'resolved' || status === 'closed')) {
-      createFeedbackRequest(supabase, id, {
+      createFeedbackRequest(supabase, complaintId, {
         referenceNumber: existingComplaint.reference_number,
         customerEmail: existingComplaint.email,
         customerName: existingComplaint.full_name,

@@ -1,6 +1,8 @@
 import { supabaseServer } from '@/lib/supabase/server';
 import { ComplaintNoteRecord } from '@/types/note';
 
+const isUuid = (str: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+
 /**
  * Server-side helper to fetch internal notes for a complaint.
  * Notes are strictly internal and only accessible by staff.
@@ -9,13 +11,27 @@ export async function getComplaintNotes(complaintId: string): Promise<ComplaintN
   if (!complaintId) return [];
 
   try {
+    let targetId = complaintId;
+    if (!isUuid(complaintId)) {
+      const { data: refRecord } = await supabaseServer
+        .from('complaints')
+        .select('id')
+        .or(`reference_number.eq.${complaintId},tracking_token.eq.${complaintId}`)
+        .maybeSingle();
+      if (refRecord?.id) {
+        targetId = refRecord.id;
+      } else {
+        return [];
+      }
+    }
+
     const { data, error } = await supabaseServer
       .from('complaint_notes')
       .select(`
         *,
         author_profile:profiles(id, full_name, email, role)
       `)
-      .eq('complaint_id', complaintId)
+      .eq('complaint_id', targetId)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -49,10 +65,24 @@ export async function createComplaintNote(
   }
 
   try {
+    let targetId = complaintId;
+    if (!isUuid(complaintId)) {
+      const { data: refRecord } = await supabaseServer
+        .from('complaints')
+        .select('id')
+        .or(`reference_number.eq.${complaintId},tracking_token.eq.${complaintId}`)
+        .maybeSingle();
+      if (refRecord?.id) {
+        targetId = refRecord.id;
+      } else {
+        return { success: false, error: 'Complaint not found.' };
+      }
+    }
+
     const { data, error } = await supabaseServer
       .from('complaint_notes')
       .insert({
-        complaint_id: complaintId,
+        complaint_id: targetId,
         author_id: authorId,
         note: trimmedNote,
       })
