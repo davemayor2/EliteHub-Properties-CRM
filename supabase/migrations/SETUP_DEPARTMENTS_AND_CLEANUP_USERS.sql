@@ -340,5 +340,64 @@ CREATE POLICY "Admins can delete staff departments"
 ON public.staff_departments FOR DELETE TO authenticated
 USING (true);
 
--- STEP 11: Reload PostgREST Schema Cache
+-- STEP 11: Admin function to completely remove staff member (allowing re-invitations)
+CREATE OR REPLACE FUNCTION public.admin_delete_staff_user(p_target_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+DECLARE
+  v_caller_role TEXT;
+  v_caller_id UUID;
+  v_admin_count INT;
+  v_target_role TEXT;
+BEGIN
+  v_caller_id := auth.uid();
+
+  -- Verify caller is admin
+  SELECT role INTO v_caller_role FROM public.profiles WHERE id = v_caller_id;
+  IF v_caller_role != 'admin' THEN
+    RAISE EXCEPTION 'Unauthorized: only active administrators can permanently delete staff accounts.';
+  END IF;
+
+  -- Verify caller is not deleting themselves
+  IF v_caller_id = p_target_id THEN
+    RAISE EXCEPTION 'Action blocked: you cannot delete your own administrator account.';
+  END IF;
+
+  -- Check if target is admin and verify at least one other active admin remains
+  SELECT role INTO v_target_role FROM public.profiles WHERE id = p_target_id;
+  IF v_target_role = 'admin' THEN
+    SELECT COUNT(*) INTO v_admin_count FROM public.profiles WHERE role = 'admin' AND is_active = true AND id != p_target_id;
+    IF v_admin_count < 1 THEN
+      RAISE EXCEPTION 'Action blocked: cannot delete the last active administrator.';
+    END IF;
+  END IF;
+
+  -- 1. Safely unassign complaints so tickets remain safe in the unassigned pool
+  UPDATE public.complaints
+  SET assigned_to = NULL, updated_at = NOW()
+  WHERE assigned_to = p_target_id;
+
+  -- 2. Remove staff department mappings
+  DELETE FROM public.staff_departments
+  WHERE staff_id = p_target_id;
+
+  -- 3. Delete profile
+  DELETE FROM public.profiles
+  WHERE id = p_target_id;
+
+  -- 4. Delete auth user so email is freed up for future invitations
+  DELETE FROM auth.users
+  WHERE id = p_target_id;
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_delete_staff_user(UUID) TO authenticated;
+
+-- STEP 12: Reload PostgREST Schema Cache
 NOTIFY pgrst, 'reload schema';
+

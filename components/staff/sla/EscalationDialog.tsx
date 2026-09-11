@@ -97,10 +97,10 @@ export default function EscalationDialog({
             )}
           </div>
 
-          <div className="modal-footer">
+          <div className="modal-actions">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn-cancel"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -108,17 +108,16 @@ export default function EscalationDialog({
             </button>
             <button
               type="submit"
-              className="btn"
-              style={{ background: '#dc2626', color: '#ffffff', borderColor: '#b91c1c' }}
+              className="btn-danger-modal"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
                   <RefreshCw size={14} className="animate-spin mr-1 inline" />
-                  Escalating...
+                  <span>Escalating...</span>
                 </>
               ) : (
-                'Confirm Escalation'
+                <span>Confirm Escalation</span>
               )}
             </button>
           </div>

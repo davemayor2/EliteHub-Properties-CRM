@@ -7,6 +7,7 @@ import TeamTable from './TeamTable';
 import AddStaffModal from './AddStaffModal';
 import EditStaffModal from './EditStaffModal';
 import DeactivateStaffDialog from './DeactivateStaffDialog';
+import DeleteStaffDialog from './DeleteStaffDialog';
 import { UserPlus, Users, ShieldCheck, UserX, Clock, Shield } from 'lucide-react';
 
 interface TeamWorkspaceProps {
@@ -24,6 +25,7 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffDetailView | null>(null);
   const [statusToggleStaff, setStatusToggleStaff] = useState<StaffDetailView | null>(null);
+  const [deleteStaff, setDeleteStaff] = useState<StaffDetailView | null>(null);
 
   // Compute metric stats
   const metrics = useMemo(() => {
@@ -85,6 +87,10 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
     setTeam((prev) =>
       prev.map((s) => (s.id === updatedStaff.id ? updatedStaff : s))
     );
+  };
+
+  const handleStaffDeleted = (deletedId: string) => {
+    setTeam((prev) => prev.filter((s) => s.id !== deletedId));
   };
 
   const handleResetFilters = () => {
@@ -186,6 +192,7 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
           team={filteredTeam}
           onEditStaff={(s) => setEditingStaff(s)}
           onToggleStatus={(s) => setStatusToggleStaff(s)}
+          onDeleteStaff={(s) => setDeleteStaff(s)}
           isFiltered={isFiltered}
           onResetFilters={handleResetFilters}
         />
@@ -210,6 +217,13 @@ export default function TeamWorkspace({ initialTeam }: TeamWorkspaceProps) {
         staff={statusToggleStaff}
         onClose={() => setStatusToggleStaff(null)}
         onStatusToggled={handleStaffUpdated}
+      />
+
+      <DeleteStaffDialog
+        isOpen={deleteStaff !== null}
+        staff={deleteStaff}
+        onClose={() => setDeleteStaff(null)}
+        onStaffDeleted={handleStaffDeleted}
       />
     </div>
   );

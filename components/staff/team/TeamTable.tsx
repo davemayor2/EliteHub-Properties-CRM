@@ -9,6 +9,7 @@ import {
   MoreHorizontal,
   Edit2,
   Power,
+  Trash2,
   ExternalLink,
   Users,
   SearchX,
@@ -19,6 +20,7 @@ interface TeamTableProps {
   team: StaffDetailView[];
   onEditStaff: (staff: StaffDetailView) => void;
   onToggleStatus: (staff: StaffDetailView) => void;
+  onDeleteStaff?: (staff: StaffDetailView) => void;
   isFiltered?: boolean;
   onResetFilters?: () => void;
 }
@@ -27,6 +29,7 @@ export default function TeamTable({
   team,
   onEditStaff,
   onToggleStatus,
+  onDeleteStaff,
   isFiltered = false,
   onResetFilters,
 }: TeamTableProps) {
@@ -182,6 +185,16 @@ export default function TeamTable({
                   >
                     <Power size={14} />
                   </button>
+                  {onDeleteStaff && (
+                    <button
+                      type="button"
+                      onClick={() => onDeleteStaff(member)}
+                      className="btn-action-icon text-danger hover:bg-rose-50"
+                      title="Permanently delete staff member"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                 </div>
               </td>
             </tr>
@@ -251,6 +264,16 @@ export default function TeamTable({
                   <Power size={13} />
                   <span>{member.is_active ? 'Deactivate' : 'Reactivate'}</span>
                 </button>
+                {onDeleteStaff && (
+                  <button
+                    type="button"
+                    onClick={() => onDeleteStaff(member)}
+                    className="btn-mobile-action btn-danger-text"
+                  >
+                    <Trash2 size={13} />
+                    <span>Delete</span>
+                  </button>
+                )}
               </div>
             </div>
           </div>

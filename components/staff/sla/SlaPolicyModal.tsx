@@ -331,10 +331,10 @@ export default function SlaPolicyModal({
             </div>
           </div>
 
-          <div className="modal-footer">
+          <div className="modal-actions">
             <button
               type="button"
-              className="btn btn-secondary"
+              className="btn-cancel"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -342,16 +342,16 @@ export default function SlaPolicyModal({
             </button>
             <button
               type="submit"
-              className="btn btn-primary"
+              className="btn-submit-modal"
               disabled={isSubmitting}
             >
               {isSubmitting ? (
                 <>
                   <RefreshCw size={14} className="animate-spin mr-1 inline" />
-                  Saving...
+                  <span>Saving...</span>
                 </>
               ) : (
-                isEditing ? 'Save Changes' : 'Create Policy'
+                <span>{isEditing ? 'Save Changes' : 'Create Policy'}</span>
               )}
             </button>
           </div>

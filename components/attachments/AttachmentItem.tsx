@@ -75,26 +75,30 @@ export default function AttachmentItem({
   };
 
   return (
-    <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-slate-200/90 shadow-sm hover:border-slate-300 transition">
+    <div className="attachment-card-modern">
       {/* File info */}
-      <div className="flex items-center gap-3 min-w-0 overflow-hidden">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, overflow: 'hidden' }}>
         <div
-          className={`p-2.5 rounded-lg flex-shrink-0 flex items-center justify-center ${
-            isImage
-              ? 'bg-blue-50 text-blue-700 border border-blue-100'
-              : isPdf
-              ? 'bg-rose-50 text-rose-700 border border-rose-100'
-              : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
-          }`}
+          style={{
+            padding: '10px',
+            borderRadius: '10px',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isImage ? '#eff6ff' : isPdf ? '#fef2f2' : '#ecfdf5',
+            color: isImage ? '#1d4ed8' : isPdf ? '#b91c1c' : '#047857',
+            border: `1px solid ${isImage ? '#bfdbfe' : isPdf ? '#fecaca' : '#a7f3d0'}`,
+          }}
         >
           {isImage ? <ImageIcon size={18} /> : <FileText size={18} />}
         </div>
 
-        <div className="min-w-0 overflow-hidden">
-          <p className="text-xs font-semibold text-slate-800 truncate" title={fileName}>
+        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={fileName}>
             {fileName}
           </p>
-          <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', fontSize: '11.5px', color: '#64748b' }}>
             <span>{formatSize(attachment.file_size)}</span>
             {attachment.created_at && (
               <>
@@ -108,12 +112,12 @@ export default function AttachmentItem({
               <>
                 <span>•</span>
                 {attachment.visibility === 'internal' ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
                     <Lock size={10} />
                     <span>Internal Only</span>
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.2 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10.5px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px', backgroundColor: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>
                     <Globe size={10} />
                     <span>Customer Visible</span>
                   </span>
@@ -125,15 +129,15 @@ export default function AttachmentItem({
       </div>
 
       {/* Action buttons */}
-      <div className="flex items-center gap-1.5 flex-shrink-0 ml-3">
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0, marginLeft: '12px' }}>
         <button
           type="button"
           onClick={() => onPreview(attachment)}
           disabled={isLoading || isDeleting}
-          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition"
+          className="btn-attachment-view"
           title="Preview attachment"
         >
-          {isLoading ? <Loader2 size={12} className="animate-spin" /> : <Eye size={12} />}
+          {isLoading ? <Loader2 size={12} className="animate-spin" /> : <Eye size={13} />}
           <span>View</span>
         </button>
 
@@ -141,11 +145,11 @@ export default function AttachmentItem({
           type="button"
           onClick={() => onDownload(attachment)}
           disabled={isLoading || isDeleting}
-          className="p-1.5 text-slate-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition"
+          className="btn-attachment-icon"
           title="Download attachment"
           aria-label="Download attachment"
         >
-          <Download size={14} />
+          <Download size={15} />
         </button>
 
         {canDelete && onDelete && (
@@ -153,11 +157,11 @@ export default function AttachmentItem({
             type="button"
             onClick={handleDeleteClick}
             disabled={isLoading || isDeleting}
-            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+            className="btn-attachment-icon btn-delete"
             title="Delete attachment"
             aria-label="Delete attachment"
           >
-            {isDeleting ? <Loader2 size={14} className="animate-spin text-rose-600" /> : <Trash2 size={14} />}
+            {isDeleting ? <Loader2 size={15} className="animate-spin text-rose-600" /> : <Trash2 size={15} />}
           </button>
         )}
       </div>

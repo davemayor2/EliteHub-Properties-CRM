@@ -77,7 +77,8 @@ export default function AttachmentPreviewDialog({
               <button
                 type="button"
                 onClick={onDownload}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-sm transition"
+                className="btn-cancel"
+                style={{ padding: '6px 12px', fontSize: '12px' }}
                 title="Download file"
               >
                 <Download size={14} />
@@ -90,7 +91,8 @@ export default function AttachmentPreviewDialog({
                 href={signedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition"
+                className="btn-cancel"
+                style={{ padding: '6px 12px', fontSize: '12px', color: '#145e3d', borderColor: '#a7f3d0', backgroundColor: '#ecfdf5' }}
                 title="Open in new tab"
               >
                 <ExternalLink size={14} />
@@ -101,7 +103,7 @@ export default function AttachmentPreviewDialog({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition"
+              className="btn-modal-close"
               aria-label="Close preview"
             >
               <X size={18} />
@@ -152,7 +154,7 @@ export default function AttachmentPreviewDialog({
                 <button
                   type="button"
                   onClick={onDownload}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold shadow transition"
+                  className="btn-submit-modal"
                 >
                   <Download size={14} />
                   <span>Download Attachment</span>

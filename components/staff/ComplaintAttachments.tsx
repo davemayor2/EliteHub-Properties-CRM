@@ -116,13 +116,13 @@ export default function ComplaintAttachments({
   return (
     <div className="staff-section-card complaint-attachments-card">
       {/* Card Header */}
-      <div className="section-card-header flex items-center justify-between">
-        <div className="flex items-center gap-3">
+      <div className="section-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div className="header-icon-pill">
             <Paperclip size={18} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <h3 className="section-card-title">Evidence & Attachments</h3>
               <span className="attachment-count-badge font-bold px-2 py-0.5 rounded-full text-xs bg-slate-100 text-slate-700">
                 {attachments.length}
@@ -137,21 +137,19 @@ export default function ComplaintAttachments({
         <button
           type="button"
           onClick={() => setShowUploader((prev) => !prev)}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-            showUploader
-              ? 'bg-slate-200 text-slate-800'
-              : 'bg-emerald-700 hover:bg-emerald-800 text-white shadow-sm'
-          }`}
+          className={showUploader ? 'btn-cancel' : 'btn-upload-evidence'}
         >
           {showUploader ? <X size={14} /> : <Plus size={14} />}
-          <span>{showUploader ? 'Cancel' : 'Upload Evidence'}</span>
+          <span>{showUploader ? 'Cancel' : '+ Upload Evidence'}</span>
         </button>
       </div>
 
       {/* Upload Box (Collapsible) */}
       {showUploader && (
-        <div className="p-4 mb-4 bg-slate-50/90 rounded-xl border border-slate-200 animate-fade-in">
-          <h4 className="text-xs font-bold text-slate-800 mb-2">Upload Supporting Evidence File</h4>
+        <div style={{ padding: '16px', marginBottom: '16px', backgroundColor: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+          <h4 style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a', margin: '0 0 10px 0' }}>
+            Upload Supporting Evidence Document
+          </h4>
 
           <AttachmentUploader
             files={newFiles}
@@ -162,13 +160,13 @@ export default function ComplaintAttachments({
           />
 
           {uploadError && (
-            <div className="mt-2 text-xs text-rose-700 bg-rose-50 p-2 rounded border border-rose-200">
+            <div className="modal-error-banner" style={{ margin: '12px 0 0 0' }}>
               {uploadError}
             </div>
           )}
 
           {newFiles.length > 0 && (
-            <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-slate-200">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px', marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #e2e8f0' }}>
               <button
                 type="button"
                 onClick={() => {
@@ -176,7 +174,7 @@ export default function ComplaintAttachments({
                   setShowUploader(false);
                 }}
                 disabled={isUploading}
-                className="px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-200/60 rounded-lg transition"
+                className="btn-cancel"
               >
                 Cancel
               </button>
@@ -184,7 +182,7 @@ export default function ComplaintAttachments({
                 type="button"
                 onClick={handleUploadSubmit}
                 disabled={isUploading}
-                className="inline-flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-white bg-emerald-700 hover:bg-emerald-800 rounded-lg shadow-sm transition disabled:opacity-50"
+                className="btn-submit-modal"
               >
                 {isUploading ? (
                   <span>Uploading files...</span>
@@ -202,15 +200,11 @@ export default function ComplaintAttachments({
 
       {/* Category Tabs */}
       {attachments.length > 0 && (
-        <div className="flex items-center gap-1 border-b border-slate-200 pb-2 mb-3 overflow-x-auto">
+        <div className="attachment-tabs-bar">
           <button
             type="button"
             onClick={() => setActiveTab('all')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition ${
-              activeTab === 'all'
-                ? 'bg-slate-800 text-white font-semibold'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`attachment-tab-pill ${activeTab === 'all' ? 'is-active' : ''}`}
           >
             All Files ({attachments.length})
           </button>
@@ -218,11 +212,7 @@ export default function ComplaintAttachments({
           <button
             type="button"
             onClick={() => setActiveTab('customer')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition ${
-              activeTab === 'customer'
-                ? 'bg-slate-800 text-white font-semibold'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`attachment-tab-pill ${activeTab === 'customer' ? 'is-active' : ''}`}
           >
             Customer Evidence ({customerAttachments.length})
           </button>
@@ -230,11 +220,7 @@ export default function ComplaintAttachments({
           <button
             type="button"
             onClick={() => setActiveTab('staff')}
-            className={`px-3 py-1 text-xs font-medium rounded-md transition ${
-              activeTab === 'staff'
-                ? 'bg-slate-800 text-white font-semibold'
-                : 'text-slate-600 hover:bg-slate-100'
-            }`}
+            className={`attachment-tab-pill ${activeTab === 'staff' ? 'is-active' : ''}`}
           >
             Staff Shared ({staffAttachments.length})
           </button>
@@ -242,13 +228,9 @@ export default function ComplaintAttachments({
           <button
             type="button"
             onClick={() => setActiveTab('internal')}
-            className={`inline-flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-md transition ${
-              activeTab === 'internal'
-                ? 'bg-amber-800 text-white font-semibold'
-                : 'text-amber-800 bg-amber-50 hover:bg-amber-100'
-            }`}
+            className={`attachment-tab-pill tab-internal ${activeTab === 'internal' ? 'is-active' : ''}`}
           >
-            <Lock size={11} />
+            <Lock size={11} style={{ display: 'inline', marginRight: '4px' }} />
             <span>Internal Only ({internalAttachments.length})</span>
           </button>
         </div>

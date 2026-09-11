@@ -129,16 +129,17 @@ export default function NoteComposer({
           </div>
         )}
 
-        <div className="note-composer-footer flex items-center justify-between mt-2 pt-2 border-t border-slate-100">
-          <div className="flex items-center gap-3">
+        <div className="note-composer-footer">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button
               type="button"
               onClick={() => setShowUploader((prev) => !prev)}
-              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg transition ${
-                showUploader || attachments.length > 0
-                  ? 'bg-amber-50 text-amber-800 border border-amber-300 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
+              className="btn-attach-evidence"
+              style={{
+                backgroundColor: showUploader || attachments.length > 0 ? '#fef3c7' : '#f8fafc',
+                borderColor: showUploader || attachments.length > 0 ? '#fde68a' : '#cbd5e1',
+                color: showUploader || attachments.length > 0 ? '#92400e' : '#475569',
+              }}
             >
               <Paperclip size={13} />
               <span>
@@ -148,7 +149,7 @@ export default function NoteComposer({
               </span>
             </button>
 
-            <div className="composer-hint flex items-center gap-1 text-slate-400 text-xs">
+            <div className="composer-hint" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#94a3b8', fontSize: '12px' }}>
               <Lock size={12} className="text-amber-500" />
               <span>Internal staff only</span>
             </div>
@@ -157,7 +158,7 @@ export default function NoteComposer({
           <button
             type="submit"
             disabled={isSubmitting || !content.trim()}
-            className="btn-add-note inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold text-white bg-slate-800 hover:bg-slate-900 transition shadow-sm disabled:opacity-50"
+            className="btn-add-note"
           >
             {isSubmitting ? (
               <>
